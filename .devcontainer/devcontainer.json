@@ -1,0 +1,171 @@
+// Base devcontainer configuration
+// This file contains common configuration shared between dev and classroom environments
+// README at: https://github.com/devcontainers/templates/tree/main/src/debian
+{
+    "name": "Debian Base",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "args": {
+            // Update 'VARIANT' to pick a different version of Debian.
+            // Options: bookworm (default), bullseye, buster
+            "VARIANT": "bookworm",
+
+            // OCI image metadata
+            "OCI_IMAGE_TITLE": "${localEnv:OCI_IMAGE_TITLE}",
+            "OCI_IMAGE_DESCRIPTION": "${localEnv:OCI_IMAGE_DESCRIPTION}",
+            "OCI_IMAGE_VERSION": "${localEnv:OCI_IMAGE_VERSION}",
+            "OCI_IMAGE_REVISION": "${localEnv:OCI_IMAGE_REVISION}",
+            "OCI_IMAGE_REF_NAME": "${localEnv:OCI_IMAGE_REF_NAME}",
+            "OCI_IMAGE_SOURCE": "${localEnv:OCI_IMAGE_SOURCE}",
+            "OCI_IMAGE_URL": "${localEnv:OCI_IMAGE_URL}",
+            "OCI_IMAGE_DOCUMENTATION": "${localEnv:OCI_IMAGE_DOCUMENTATION}",
+            "OCI_IMAGE_CREATED": "${localEnv:OCI_IMAGE_CREATED}",
+            "OCI_IMAGE_AUTHORS": "${localEnv:OCI_IMAGE_AUTHORS}",
+            "OCI_IMAGE_VENDOR": "${localEnv:OCI_IMAGE_VENDOR}",
+            "OCI_IMAGE_LICENSES": "${localEnv:OCI_IMAGE_LICENSES}"
+        }
+    },
+    // Set *default* user. Can be overridden in extending configurations
+    "remoteUser": "dev",
+
+    // Core features to add to the dev container. More info: https://containers.dev/features.
+    "features": {
+        "ghcr.io/devcontainers/features/common-utils:2.5.4": {
+            "installZsh": false,
+            "installOhMyZsh": false,
+            "upgradePackages": false,
+            "username": "dev",
+            "userUid": "1000",
+            "userGId": "1000"
+        },
+        "ghcr.io/devcontainers/features/go:1.3.2": {
+            "version": "latest"
+        },
+        "ghcr.io/devcontainers/features/node:1.6.3": {
+            "nodeGypDependencies": true,
+            "version": "lts",
+            "pnpmVersion": "latest",
+            "nvmVersion": "latest"
+        },
+        "ghcr.io/devcontainer-community/devcontainer-features/deno.com:1.0.0": {
+            "version": "latest"
+        },
+        "ghcr.io/majikmate/devcontainer-features/locales:1.0.2": {
+            "lang": "en_US.UTF-8"
+        },
+        "ghcr.io/majikmate/devcontainer-features/aliases:1.0.1": {
+            "aliases": "ls=ls -h --color=auto, ll=ls -lah --color=auto, vs=code -r ., grep=grep --color=auto"
+        },
+        "ghcr.io/majikmate/devcontainer-features/git:1.0.0": {
+        },
+        "ghcr.io/majikmate/devcontainer-features/update-os:1.0.0": {
+        }
+    },
+
+    // Explicit feature installation order - update-os must be last
+    "overrideFeatureInstallOrder": [
+        "ghcr.io/devcontainers/features/common-utils",
+        "ghcr.io/devcontainers/features/go",
+        "ghcr.io/devcontainers/features/node",
+        "ghcr.io/devcontainer-community/devcontainer-features/deno.com",
+        "ghcr.io/majikmate/devcontainer-features/locales",
+        "ghcr.io/majikmate/devcontainer-features/aliases",
+        "ghcr.io/majikmate/devcontainer-features/git",
+        "ghcr.io/majikmate/devcontainer-features/update-os"
+    ],
+
+    // Set environment variables for the container.
+    "containerEnv": {
+        "DEBIAN_FRONTEND": "noninteractive"
+    },
+
+    // Configure vscode environment - base settings shared across configurations
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "bierner.github-markdown-preview",
+                "golang.go",
+                "denoland.vscode-deno"
+            ],
+            "settings": {
+                // JSON schemas for devcontainer development
+                "json.schemas": [
+                    {
+                        "fileMatch": [
+                            "**/devcontainer-feature.json"
+                        ],
+                        "url": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainerFeature.schema.json"
+                    },
+                    {
+                        "fileMatch": [
+                            "**/devcontainer.json"
+                        ],
+                        "url": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.schema.json"
+                    }
+                ],
+
+                // Default terminal profile
+                "terminal.integrated.defaultProfile.linux": "bash",
+                "terminal.integrated.profiles.linux": {
+                    "bash": {
+                        "path": "bash"
+                    }
+                },
+
+                // Enable auto update of extensions
+                "extensions.autoUpdate": true,
+                "extensions.autoCheckUpdates": true,
+
+                // Open markdown files in preview mode
+                "workbench.editorAssociations": {
+                    "*.md": "vscode.markdown.preview.editor"
+                },
+
+                // Configure the initial default theme
+                "workbench.colorTheme": "Visual Studio Dark",
+
+                // Enable to use deno as the typescript language server
+                "deno.enable": true,
+                "deno.codeLens.testArgs": ["--allow-all", "--check=all"],
+
+                // Git settings for smooth workflows within vscode
+                // These settings ensure automatic stashing and rebasing for seamless pull/push operations
+                "git.autofetch": true,
+                "git.autoStash": true,
+                "git.confirmSync": false,
+                "git.enableSmartCommit": true,
+                "git.postCommitCommand": "sync",
+                "git.rebaseWhenSync": true,
+                "git.rememberPostCommitCommand": false,
+                "git.useEditorAsCommitInput": false,
+
+                // Editor settings
+                "editor.formatOnSave": true,
+                "editor.insertSpaces": true,
+                "editor.tabSize": 4,
+                "editor.detectIndentation": false,
+                "editor.defaultFormatter": "denoland.vscode-deno",
+
+                // Go-specific settings
+                "[go]": {
+                    "editor.formatOnSave": true,
+                    "editor.defaultFormatter": "golang.go",
+                    "editor.insertSpaces": false,
+                    "editor.tabSize": 4,
+                    "editor.codeActionsOnSave": {
+                        "source.organizeImports": "explicit"
+                    }
+                },
+                "[go.mod]": {
+                    "editor.formatOnSave": true,
+                    "editor.defaultFormatter": "golang.go"
+                },
+                "[go.sum]": {
+                    "editor.formatOnSave": false
+                }
+            }
+        }
+    }
+    // Use 'forwardPorts' to make a list of ports inside the container available locally.
+    //"forwardPorts": []
+}
