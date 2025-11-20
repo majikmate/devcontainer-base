@@ -187,7 +187,7 @@
                     "editor.formatOnSave": false
                 },
                 // PlantUML settings
-                "plantuml.server": "https://www.plantuml.com/plantuml",
+                "plantuml.server": "https://kroki.io/plantuml",
                 "plantuml.jarArgs": [
                     "-Playout=smetana"
                 ],
