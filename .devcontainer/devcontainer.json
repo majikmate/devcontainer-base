@@ -31,11 +31,11 @@
         "ghcr.io/devcontainers/features/common-utils:2.5.4": {
             "installZsh": true,
             "installOhMyZsh": false,
+            "configureZshAsDefaultShell": true,
             "upgradePackages": false,
             "username": "dev",
             "userUid": "1000",
-            "userGId": "1000",
-            "configureZshAsDefaultShell": true
+            "userGId": "1000"
         },
         "ghcr.io/devcontainers/features/go:1.3.2": {
             "version": "latest"
@@ -56,6 +56,7 @@
             "aliases": "ls=ls -h --color=auto, ll=ls -lah --color=auto, vs=code -r ., grep=grep --color=auto"
         },
         "ghcr.io/majikmate/devcontainer-features/git:1.0.0": {},
+        "ghcr.io/majikmate/devcontainer-features/pure-prompt:1": {},
         "ghcr.io/majikmate/devcontainer-features/update-os:1.0.0": {}
     },
     // Explicit feature installation order - update-os must be last
@@ -67,6 +68,7 @@
         "ghcr.io/majikmate/devcontainer-features/locales",
         "ghcr.io/majikmate/devcontainer-features/aliases",
         "ghcr.io/majikmate/devcontainer-features/git",
+        "ghcr.io/majikmate/devcontainer-features/pure-prompt",
         "ghcr.io/majikmate/devcontainer-features/update-os"
     ],
     // Set environment variables for the container.
@@ -197,9 +199,7 @@
                 "plantuml.lintDiagramNoName": false
             }
         }
-    },
-    // Install Pure prompt for zsh
-    "postCreateCommand": "mkdir -p ~/.zsh && git clone https://github.com/sindresorhus/pure.git ~/.zsh/pure 2>/dev/null || true && echo 'fpath+=$HOME/.zsh/pure' >> ~/.zshrc && echo 'autoload -U promptinit; promptinit' >> ~/.zshrc && echo 'prompt pure' >> ~/.zshrc"
+    }
     // Use 'forwardPorts' to make a list of ports inside the container available locally.
     //"forwardPorts": []
 }
