@@ -187,6 +187,7 @@
                     "editor.formatOnSave": false
                 },
                 // PlantUML settings
+                "plantuml.server": "https://www.plantuml.com/plantuml",
                 "plantuml.jarArgs": [
                     "-Playout=smetana"
                 ],
