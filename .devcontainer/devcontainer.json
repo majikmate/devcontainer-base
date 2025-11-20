@@ -29,7 +29,7 @@
     // Core features to add to the dev container. More info: https://containers.dev/features.
     "features": {
         "ghcr.io/devcontainers/features/common-utils:2.5.4": {
-            "installZsh": false,
+            "installZsh": true,
             "installOhMyZsh": false,
             "upgradePackages": false,
             "username": "dev",
