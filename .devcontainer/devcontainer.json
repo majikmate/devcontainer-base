@@ -9,7 +9,6 @@
             // Update 'VARIANT' to pick a different version of Debian.
             // Options: bookworm (default), bullseye, buster
             "VARIANT": "bookworm",
-
             // OCI image metadata
             "OCI_IMAGE_TITLE": "${localEnv:OCI_IMAGE_TITLE}",
             "OCI_IMAGE_DESCRIPTION": "${localEnv:OCI_IMAGE_DESCRIPTION}",
@@ -27,7 +26,6 @@
     },
     // Set *default* user. Can be overridden in extending configurations
     "remoteUser": "dev",
-
     // Core features to add to the dev container. More info: https://containers.dev/features.
     "features": {
         "ghcr.io/devcontainers/features/common-utils:2.5.4": {
@@ -56,12 +54,9 @@
         "ghcr.io/majikmate/devcontainer-features/aliases:1.0.1": {
             "aliases": "ls=ls -h --color=auto, ll=ls -lah --color=auto, vs=code -r ., grep=grep --color=auto"
         },
-        "ghcr.io/majikmate/devcontainer-features/git:1.0.0": {
-        },
-        "ghcr.io/majikmate/devcontainer-features/update-os:1.0.0": {
-        }
+        "ghcr.io/majikmate/devcontainer-features/git:1.0.0": {},
+        "ghcr.io/majikmate/devcontainer-features/update-os:1.0.0": {}
     },
-
     // Explicit feature installation order - update-os must be last
     "overrideFeatureInstallOrder": [
         "ghcr.io/devcontainers/features/common-utils",
@@ -73,19 +68,19 @@
         "ghcr.io/majikmate/devcontainer-features/git",
         "ghcr.io/majikmate/devcontainer-features/update-os"
     ],
-
     // Set environment variables for the container.
     "containerEnv": {
         "DEBIAN_FRONTEND": "noninteractive"
     },
-
     // Configure vscode environment - base settings shared across configurations
     "customizations": {
         "vscode": {
             "extensions": [
                 "bierner.github-markdown-preview",
                 "golang.go",
-                "denoland.vscode-deno"
+                "denoland.vscode-deno",
+                "jebbs.plantuml",
+                "tomoki1207.pdf"
             ],
             "settings": {
                 // JSON schemas for devcontainer development
@@ -103,31 +98,28 @@
                         "url": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.schema.json"
                     }
                 ],
-
                 // Default terminal profile
-                "terminal.integrated.defaultProfile.linux": "bash",
+                "terminal.integrated.defaultProfile.linux": "zsh",
                 "terminal.integrated.profiles.linux": {
-                    "bash": {
-                        "path": "bash"
+                    "zsh": {
+                        "path": "zsh"
                     }
                 },
-
                 // Enable auto update of extensions
                 "extensions.autoUpdate": true,
                 "extensions.autoCheckUpdates": true,
-
                 // Open markdown files in preview mode
                 "workbench.editorAssociations": {
                     "*.md": "vscode.markdown.preview.editor"
                 },
-
                 // Configure the initial default theme
                 "workbench.colorTheme": "Visual Studio Dark",
-
                 // Enable to use deno as the typescript language server
                 "deno.enable": true,
-                "deno.codeLens.testArgs": ["--allow-all", "--check=all"],
-
+                "deno.codeLens.testArgs": [
+                    "--allow-all",
+                    "--check=all"
+                ],
                 // Git settings for smooth workflows within vscode
                 // These settings ensure automatic stashing and rebasing for seamless pull/push operations
                 "git.autofetch": true,
@@ -138,14 +130,43 @@
                 "git.rebaseWhenSync": true,
                 "git.rememberPostCommitCommand": false,
                 "git.useEditorAsCommitInput": false,
-
                 // Editor settings
                 "editor.formatOnSave": true,
                 "editor.insertSpaces": true,
                 "editor.tabSize": 4,
                 "editor.detectIndentation": false,
-                "editor.defaultFormatter": "denoland.vscode-deno",
-
+                "[html]": {
+                    "editor.formatOnSave": true,
+                    "editor.defaultFormatter": "denoland.vscode-deno"
+                },
+                "[css]": {
+                    "editor.formatOnSave": true,
+                    "editor.defaultFormatter": "denoland.vscode-deno"
+                },
+                "[javascript]": {
+                    "editor.formatOnSave": true,
+                    "editor.defaultFormatter": "denoland.vscode-deno"
+                },
+                "[typescript]": {
+                    "editor.formatOnSave": true,
+                    "editor.defaultFormatter": "denoland.vscode-deno"
+                },
+                "[javascriptreact]": {
+                    "editor.formatOnSave": true,
+                    "editor.defaultFormatter": "denoland.vscode-deno"
+                },
+                "[typescriptreact]": {
+                    "editor.formatOnSave": true,
+                    "editor.defaultFormatter": "denoland.vscode-deno"
+                },
+                "[json]": {
+                    "editor.formatOnSave": true,
+                    "editor.defaultFormatter": "denoland.vscode-deno"
+                },
+                "[jsonc]": {
+                    "editor.formatOnSave": true,
+                    "editor.defaultFormatter": "denoland.vscode-deno"
+                },
                 // Go-specific settings
                 "[go]": {
                     "editor.formatOnSave": true,
@@ -162,7 +183,14 @@
                 },
                 "[go.sum]": {
                     "editor.formatOnSave": false
-                }
+                },
+                // PlantUML settings
+                "plantuml.jarArgs": [
+                    "-Playout=smetana"
+                ],
+                "plantuml.render": "Local",
+                "plantuml.exportFormat": "svg",
+                "plantuml.lintDiagramNoName": false
             }
         }
     }
