@@ -55,10 +55,23 @@ devcontainer-classroom-web
 
 ### VS Code Configuration
 
-- **Extensions**: Markdown preview, Go support, Deno support
-- **Settings**: Terminal configuration, editor settings, Git workflows
+- **Extensions**:
+  - Markdown preview (`bierner.github-markdown-preview`)
+  - Go language support (`golang.go`)
+  - Deno runtime support (`denoland.vscode-deno`)
+  - PlantUML diagrams (`jebbs.plantuml`)
+  - PDF viewer (`tomoki1207.pdf`)
+- **Settings**:
+  - Terminal configuration (zsh default)
+  - Editor settings with Deno formatter for web files
+  - Git workflows with auto-sync
+  - PlantUML local rendering with SVG export
 - **Theme**: Visual Studio Dark
 - **Deno Integration**: Enabled as TypeScript language server
+- **Formatting**: Deno configured as default formatter for:
+  - HTML, CSS
+  - JavaScript, TypeScript, JSX, TSX
+  - JSON, JSONC
 
 ### Git Workflow Optimization
 
