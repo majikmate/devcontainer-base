@@ -56,7 +56,7 @@
             "aliases": "ls=ls -h --color=auto, ll=ls -lah --color=auto, vs=code -r ., grep=grep --color=auto"
         },
         "ghcr.io/majikmate/devcontainer-features/git:1.0.0": {},
-        "ghcr.io/majikmate/devcontainer-features/pure-prompt:1": {},
+        "ghcr.io/majikmate/devcontainer-features/pure-prompt:1.0.1": {},
         "ghcr.io/majikmate/devcontainer-features/update-os:1.0.0": {}
     },
     // Explicit feature installation order - update-os must be last
