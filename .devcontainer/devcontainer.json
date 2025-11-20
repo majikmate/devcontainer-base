@@ -80,7 +80,9 @@
                 "golang.go",
                 "denoland.vscode-deno",
                 "jebbs.plantuml",
-                "tomoki1207.pdf"
+                "tomoki1207.pdf",
+                // remove plugins installed by features that are not needed in all configurations
+                "-dbaeumer.vscode-eslint"
             ],
             "settings": {
                 // JSON schemas for devcontainer development
