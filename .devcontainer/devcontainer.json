@@ -190,11 +190,11 @@
                     "editor.formatOnSave": false
                 },
                 // PlantUML settings
-                "plantuml.server": "https://kroki.io/plantuml",
+                "plantuml.server": "https://plantuml.htldornbirn.org/17159320-b82a-47cf-88c3-31945bc627fe/",
                 "plantuml.jarArgs": [
                     "-Playout=smetana"
                 ],
-                "plantuml.render": "Local",
+                "plantuml.render": "PlantUMLServer",
                 "plantuml.exportFormat": "svg",
                 "plantuml.lintDiagramNoName": false
             }
