@@ -10,7 +10,7 @@ linux/arm64)
 ## Images and their dependencies
 
 ```
-devcontainer-features  (features: locales, aliases, git, pure-prompt, deno, prettier, update-os)
+devcontainer-features  (features: locales, aliases, git, pure-prompt, deno, prettier, playwright-deps, update-os)
         │
         ├──► devcontainer-base      (this repository)
         │           ├──► devcontainer-classroom-web            (classroom image for web development)
