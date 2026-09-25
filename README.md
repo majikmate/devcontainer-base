@@ -7,16 +7,20 @@ and common tools on Debian 13 "trixie", and a shared VS Code configuration.
 Published image: `ghcr.io/majikmate/devcontainer-base` (linux/amd64 and
 linux/arm64)
 
-## Images that use this base
+## Images and their dependencies
 
 ```
 devcontainer-features  (features: locales, aliases, git, pure-prompt, deno, prettier, update-os)
         │
-        ▼
-devcontainer-base      (this repository)
-        ├──► devcontainer-classroom-web   (classroom image for web development)
-        └──► devcontainer-dev             (development image)
+        ├──► devcontainer-base      (this repository)
+        │           ├──► devcontainer-classroom-web   (classroom image for web development)
+        │           └──► devcontainer-dev             (development image)
+        │
+        └──► devcontainer-classroom-exam-ts          (standalone exam image, Deno only)
 ```
+
+All these images use the shared release workflow of this repository (see
+[Automatic releases](#automatic-releases)).
 
 ## What the image contains
 
@@ -187,6 +191,8 @@ architectures. After the merge, the image is released automatically.
   classroom image for web development
 - [devcontainer-dev](https://github.com/majikmate/devcontainer-dev):
   development image
+- [devcontainer-classroom-exam-ts](https://github.com/majikmate/devcontainer-classroom-exam-ts):
+  standalone exam image for TypeScript/Deno (uses the shared release workflow)
 
 ## License
 
