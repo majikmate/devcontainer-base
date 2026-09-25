@@ -13,10 +13,11 @@ linux/arm64)
 devcontainer-features  (features: locales, aliases, git, pure-prompt, deno, prettier, update-os)
         │
         ├──► devcontainer-base      (this repository)
-        │           ├──► devcontainer-classroom-web   (classroom image for web development)
-        │           └──► devcontainer-dev             (development image)
+        │           ├──► devcontainer-classroom-web            (classroom image for web development)
+        │           ├──► devcontainer-classroom-web-advanced   (advanced web development, with AI)
+        │           └──► devcontainer-dev                      (development image)
         │
-        └──► devcontainer-classroom-exam-ts          (standalone exam image, Deno only)
+        └──► devcontainer-classroom-exam-ts                   (standalone exam image, Deno only)
 ```
 
 All these images use the shared release workflow of this repository (see
@@ -189,6 +190,8 @@ architectures. After the merge, the image is released automatically.
   the majikmate features used by this image
 - [devcontainer-classroom-web](https://github.com/majikmate/devcontainer-classroom-web):
   classroom image for web development
+- [devcontainer-classroom-web-advanced](https://github.com/majikmate/devcontainer-classroom-web-advanced):
+  classroom image for advanced web development, with AI assistance
 - [devcontainer-dev](https://github.com/majikmate/devcontainer-dev):
   development image
 - [devcontainer-classroom-exam-ts](https://github.com/majikmate/devcontainer-classroom-exam-ts):
