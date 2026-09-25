@@ -1,0 +1,471 @@
+# Shared workflow: build, test and release a Dev Container image.
+#
+# Used by the release.yml workflow of every image repository
+# (devcontainer-base, devcontainer-classroom-web, devcontainer-dev).
+#
+# How it decides:
+#   1. It collects the "inputs" of the image: the .devcontainer folder, the digest
+#      of every base image (Dockerfile FROM / "image") and of every feature, and the
+#      newest versions of the tools (script tool-versions-script, optional).
+#   2. It compares them with the inputs recorded in the label of the current
+#      ":latest" image. Only when something changed (or the image is older than
+#      max-age-days, or a release is forced) it builds and releases a new version.
+#   3. Pull requests are only built and tested; nothing is published.
+#
+# Versions: v<major>.<minor>.<patch>. The major version comes from the input
+# major-version. The patch number increases with every automatic release; the
+# minor number increases when the major version of Go, Node.js or Deno changes.
+# A pushed tag vX.Y.Z releases exactly this version.
+name: Dev Container image
+
+on:
+  workflow_call:
+    inputs:
+      image-title:
+        description: OCI title of the image
+        type: string
+        required: true
+      image-description:
+        description: OCI description of the image
+        type: string
+        required: true
+      major-version:
+        description: Major version of the image (increase it together with a breaking change)
+        type: number
+        required: true
+      smoke-test:
+        description: "Commands that run inside the built container. Lines of the form version: <tool>=<version> are compared with the tool versions."
+        type: string
+        required: true
+      tool-versions-script:
+        description: Script in the calling repository that prints "<tool>=<version>" lines (skipped if the file does not exist)
+        type: string
+        default: .github/tool-versions.sh
+      max-age-days:
+        description: Rebuild when the newest image is older than this number of days (operating system updates)
+        type: number
+        default: 7
+      force:
+        description: Release a new version even if no input changed
+        type: boolean
+        default: false
+      bump:
+        description: "Version step: auto, patch, minor or major"
+        type: string
+        default: auto
+
+env:
+  IMAGE_NAME: ghcr.io/${{ github.repository }}
+  LABEL_INPUTS: io.github.majikmate.devcontainer.inputs
+  LABEL_FINGERPRINT: io.github.majikmate.devcontainer.fingerprint
+
+jobs:
+  prepare:
+    name: Check inputs
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      actions: write
+    outputs:
+      build: ${{ steps.decide.outputs.build }}
+      release: ${{ steps.decide.outputs.release }}
+      version: ${{ steps.decide.outputs.version }}
+      tags: ${{ steps.decide.outputs.tags }}
+      reason: ${{ steps.decide.outputs.reason }}
+      created: ${{ steps.decide.outputs.created }}
+      inputs: ${{ steps.inputs.outputs.inputs }}
+      fingerprint: ${{ steps.inputs.outputs.fingerprint }}
+      tools: ${{ steps.inputs.outputs.tools }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      # GitHub disables scheduled workflows in public repositories after 60 days
+      # without repository activity. Re-enabling the workflow on every scheduled
+      # run keeps the hourly check active.
+      - name: Keep the scheduled check enabled
+        if: github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          workflow_file="$(basename "${GITHUB_WORKFLOW_REF%@*}")"
+          gh api --method PUT "repos/${GITHUB_REPOSITORY}/actions/workflows/${workflow_file}/enable" \
+            || echo "::warning::Could not re-enable workflow ${workflow_file}"
+
+      - name: Read the current image
+        id: current
+        run: |
+          if skopeo inspect --retry-times 3 "docker://${IMAGE_NAME}:latest" > current.json 2>/dev/null; then
+            echo "inputs=$(jq -r --arg l "$LABEL_INPUTS" '.Labels[$l] // ""' current.json)" >> "$GITHUB_OUTPUT"
+            echo "created=$(jq -r '.Created // ""' current.json)" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::No image ${IMAGE_NAME}:latest found."
+          fi
+
+      - name: Collect inputs
+        id: inputs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PREVIOUS_INPUTS: ${{ steps.current.outputs.inputs }}
+          TOOL_SCRIPT: ${{ inputs.tool-versions-script }}
+        run: |
+          set -euo pipefail
+
+          # Previous values (used when a source cannot be reached)
+          declare -A previous=()
+          for entry in ${PREVIOUS_INPUTS}; do
+            previous["${entry%%=*}"]="${entry#*=}"
+          done
+          lines=()
+          add() { # add <key> <value>
+            local key="$1" value="$2"
+            if [ -z "${value}" ]; then
+              if [ -n "${previous[$key]:-}" ]; then
+                echo "::warning::Could not read ${key}; keeping the previous value ${previous[$key]}"
+                value="${previous[$key]}"
+              else
+                echo "::error::Could not read ${key} and no previous value exists"
+                exit 1
+              fi
+            fi
+            lines+=("${key}=${value}")
+          }
+
+          # 1. Configuration (git tree id of the .devcontainer folder)
+          add "config" "$(git rev-parse HEAD:.devcontainer)"
+
+          # 2. Base images and features from devcontainer.json and the Dockerfile
+          npm install --silent --no-save --prefix "${RUNNER_TEMP}/jsonc" jsonc-parser@3 >/dev/null
+          refs="$(node -e '
+            const fs = require("fs");
+            const { parse } = require(process.env.RUNNER_TEMP + "/jsonc/node_modules/jsonc-parser");
+            const errors = [];
+            const config = parse(fs.readFileSync(".devcontainer/devcontainer.json", "utf8"), errors, { allowTrailingComma: true });
+            if (errors.length) { console.error("Invalid devcontainer.json", JSON.stringify(errors)); process.exit(1); }
+            if (config.image) console.log("image " + config.image);
+            for (const id of Object.keys(config.features || {})) {
+              if (!id.startsWith(".")) console.log("feature " + id);
+            }
+          ')"
+          if [ -f .devcontainer/Dockerfile ]; then
+            while read -r image; do
+              case "${image}" in
+                *'$'*) echo "::error::Dockerfile FROM with variables is not supported: ${image}"; exit 1 ;;
+              esac
+              refs+=$'\n'"image ${image}"
+            done < <(awk 'toupper($1) == "FROM" { print $2 }' .devcontainer/Dockerfile)
+          fi
+
+          while read -r kind ref; do
+            [ -n "${ref}" ] || continue
+            manifest=""
+            manifest="$(skopeo inspect --raw --retry-times 3 "docker://${ref}" 2>/dev/null)" || manifest=""
+            value=""
+            if [ -n "${manifest}" ]; then
+              value="$(printf '%s' "${manifest}" | sha256sum | cut -c1-16)"
+              if [ "${kind}" = "feature" ]; then
+                feature_version="$(printf '%s' "${manifest}" | jq -r '.annotations["dev.containers.metadata"] // "{}" | fromjson | .version // ""' 2>/dev/null || true)"
+                [ -z "${feature_version}" ] || value="${feature_version}@${value}"
+              fi
+            fi
+            add "${kind}/${ref}" "${value}"
+          done <<< "${refs}"
+
+          # 3. Tool versions
+          tools=""
+          if [ -f "${TOOL_SCRIPT}" ]; then
+            while IFS='=' read -r tool version; do
+              [ -n "${tool}" ] || continue
+              add "tool/${tool}" "${version}"
+              tools+="${tool}=${lines[-1]#*=} "
+            done < <(bash "${TOOL_SCRIPT}")
+          fi
+
+          inputs="$(printf '%s\n' "${lines[@]}" | sort | tr '\n' ' ' | sed 's/ $//')"
+          fingerprint="$(printf '%s' "${inputs}" | sha256sum | cut -d' ' -f1)"
+          {
+            echo "inputs=${inputs}"
+            echo "fingerprint=${fingerprint}"
+            echo "tools=${tools% }"
+          } >> "$GITHUB_OUTPUT"
+          echo "### Inputs" >> "$GITHUB_STEP_SUMMARY"
+          # shellcheck disable=SC2016 # the backticks are Markdown, not a command
+          printf '%s\n' "${lines[@]}" | sort | sed 's/^/- `/; s/$/`/' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Decide
+        id: decide
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          CURRENT_INPUTS: ${{ steps.current.outputs.inputs }}
+          CURRENT_CREATED: ${{ steps.current.outputs.created }}
+          NEW_INPUTS: ${{ steps.inputs.outputs.inputs }}
+          MAJOR: ${{ inputs.major-version }}
+          MAX_AGE_DAYS: ${{ inputs.max-age-days }}
+          FORCE: ${{ inputs.force }}
+          BUMP: ${{ inputs.bump }}
+        run: |
+          set -euo pipefail
+          build=true
+          release=false
+          reason=""
+          created="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+          # Lines that changed compared with the current image
+          changes="$(diff <(tr ' ' '\n' <<< "${CURRENT_INPUTS}") <(tr ' ' '\n' <<< "${NEW_INPUTS}") \
+            | grep '^>' | sed 's/^> //' | tr '\n' ' ' || true)"
+
+          age_days=-1
+          if [ -n "${CURRENT_CREATED}" ]; then
+            age_days=$(( ( $(date -u +%s) - $(date -u -d "${CURRENT_CREATED}" +%s) ) / 86400 ))
+          fi
+
+          if [ "${EVENT}" = "pull_request" ]; then
+            version="pr-${PR_NUMBER}"
+            reason="Pull request build (not published)"
+          elif [[ "${GITHUB_REF}" =~ ^refs/tags/v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            version="${BASH_REMATCH[1]}"
+            release=true
+            reason="Tag v${version}"
+          else
+            if [ "${FORCE}" = "true" ]; then
+              reason="Manual release"
+            elif [ -z "${CURRENT_INPUTS}" ]; then
+              reason="First release with recorded inputs"
+            elif [ -n "${changes}" ]; then
+              reason="Changed inputs: ${changes% }"
+            elif [ "${age_days}" -ge "${MAX_AGE_DAYS}" ]; then
+              reason="Refresh: the current image is ${age_days} days old (operating system updates)"
+            else
+              build=false
+              reason="No input changed and the current image is ${age_days} days old; nothing to do"
+            fi
+
+            if [ "${build}" = "true" ]; then
+              release=true
+              # Highest existing version of this major version
+              last="$(git ls-remote --tags --refs origin "refs/tags/v${MAJOR}.*" \
+                | sed 's#.*refs/tags/v##' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1 || true)"
+              step="${BUMP}"
+              if [ "${step}" = "auto" ]; then
+                step="patch"
+                # Minor step when the major version of Go (1.x), Node.js or Deno changes
+                for tool in go node deno; do
+                  old="$(tr ' ' '\n' <<< "${CURRENT_INPUTS}" | sed -n "s#^tool/${tool}=v\{0,1\}##p")"
+                  new="$(tr ' ' '\n' <<< "${NEW_INPUTS}" | sed -n "s#^tool/${tool}=v\{0,1\}##p")"
+                  fields=1
+                  if [ "${tool}" = "go" ]; then fields=2; fi
+                  if [ -n "${old}" ] && [ -n "${new}" ] && \
+                     [ "$(cut -d. -f1-${fields} <<< "${old}")" != "$(cut -d. -f1-${fields} <<< "${new}")" ]; then
+                    step=minor
+                  fi
+                done
+              fi
+              if [ -z "${last}" ]; then
+                version="${MAJOR}.0.0"
+              else
+                IFS=. read -r x y z <<< "${last}"
+                case "${step}" in
+                  major) version="$((x + 1)).0.0" ;;
+                  minor) version="${x}.$((y + 1)).0" ;;
+                  *) version="${x}.${y}.$((z + 1))" ;;
+                esac
+              fi
+            fi
+          fi
+
+          tags=""
+          if [ "${release}" = "true" ]; then
+            IFS=. read -r x y _ <<< "${version}"
+            tags="${version} ${x}.${y} ${x}"
+            # "latest" always points to the configured major version
+            if [ "${x}" = "${MAJOR}" ]; then
+              tags+=" latest"
+            fi
+          fi
+
+          {
+            echo "build=${build}"
+            echo "release=${release}"
+            echo "version=${version:-none}"
+            echo "tags=${tags}"
+            echo "reason=${reason}"
+            echo "created=${created}"
+          } >> "$GITHUB_OUTPUT"
+          {
+            echo "### Decision"
+            echo "- Build: ${build}, release: ${release}, version: ${version:-none}"
+            echo "- Tags: ${tags:-none}"
+            echo "- Reason: ${reason}"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "${reason}"
+
+  build:
+    name: Build ${{ matrix.arch }}
+    needs: prepare
+    if: needs.prepare.outputs.build == 'true'
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+            platform: linux/amd64
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            platform: linux/arm64
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to the GitHub Container Registry
+        if: needs.prepare.outputs.release == 'true'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # No build cache: every build installs the newest tools and packages.
+      # A cache would reuse old feature layers (for example an old Go version).
+      - name: Build and test the image
+        id: build
+        uses: devcontainers/ci@v0.3
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OCI_IMAGE_TITLE: ${{ inputs.image-title }}
+          OCI_IMAGE_DESCRIPTION: ${{ inputs.image-description }}
+          OCI_IMAGE_VERSION: ${{ needs.prepare.outputs.version }}
+          OCI_IMAGE_REVISION: ${{ github.sha }}
+          OCI_IMAGE_REF_NAME: ${{ github.ref_name }}
+          OCI_IMAGE_SOURCE: ${{ github.server_url }}/${{ github.repository }}
+          OCI_IMAGE_URL: ${{ github.server_url }}/${{ github.repository }}
+          OCI_IMAGE_DOCUMENTATION: ${{ github.server_url }}/${{ github.repository }}#readme
+          OCI_IMAGE_CREATED: ${{ needs.prepare.outputs.created }}
+          OCI_IMAGE_AUTHORS: ${{ github.repository_owner }}
+          OCI_IMAGE_VENDOR: ${{ github.repository_owner }}
+          OCI_IMAGE_LICENSES: "MIT"
+          DEVCONTAINER_INPUTS: ${{ needs.prepare.outputs.inputs }}
+          DEVCONTAINER_FINGERPRINT: ${{ needs.prepare.outputs.fingerprint }}
+        with:
+          imageName: ${{ env.IMAGE_NAME }}
+          imageTag: ${{ needs.prepare.outputs.version }}-${{ matrix.arch }}
+          push: ${{ needs.prepare.outputs.release == 'true' && 'always' || 'never' }}
+          platform: ${{ matrix.platform }}
+          noCache: true
+          runCmd: ${{ inputs.smoke-test }}
+
+      - name: Compare installed versions with the expected versions
+        env:
+          OUTPUT: ${{ steps.build.outputs.runCmdOutput }}
+          EXPECTED: ${{ needs.prepare.outputs.tools }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          printf '%s\n' "${OUTPUT}" > "test-output-${ARCH}.txt"
+          {
+            echo "### Test output (${ARCH})"
+            echo '```'
+            cat "test-output-${ARCH}.txt"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          for entry in ${EXPECTED}; do
+            tool="${entry%%=*}"
+            expected="${entry#*=}"
+            installed="$(sed -n "s/^version: ${tool}=//p" "test-output-${ARCH}.txt" | head -n 1 | tr -d '[:space:]')"
+            if [ -n "${installed}" ] && [ "${installed#v}" != "${expected#v}" ]; then
+              echo "::warning::${tool}: installed ${installed}, newest upstream version ${expected}"
+            fi
+          done
+
+      - name: Keep the test output
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-output-${{ matrix.arch }}
+          path: test-output-${{ matrix.arch }}.txt
+          retention-days: 7
+
+  publish:
+    name: Publish ${{ needs.prepare.outputs.version }}
+    needs: [prepare, build]
+    if: needs.prepare.outputs.release == 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to the GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create the multi-architecture image
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+          TAGS: ${{ needs.prepare.outputs.tags }}
+        run: |
+          set -euo pipefail
+          args=()
+          for tag in ${TAGS}; do
+            args+=(--tag "${IMAGE_NAME}:${tag}")
+          done
+          docker buildx imagetools create "${args[@]}" \
+            "${IMAGE_NAME}:${VERSION}-amd64" \
+            "${IMAGE_NAME}:${VERSION}-arm64"
+          docker buildx imagetools inspect "${IMAGE_NAME}:${VERSION}"
+
+      - name: Download the test output
+        uses: actions/download-artifact@v8
+        with:
+          pattern: test-output-*
+          merge-multiple: true
+
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          TAGS: ${{ needs.prepare.outputs.tags }}
+          REASON: ${{ needs.prepare.outputs.reason }}
+          INPUTS: ${{ needs.prepare.outputs.inputs }}
+        run: |
+          set -euo pipefail
+          {
+            echo "## Image"
+            echo
+            for tag in ${TAGS}; do echo "- \`${IMAGE_NAME}:${tag}\`"; done
+            echo
+            echo "Platforms: linux/amd64, linux/arm64"
+            echo
+            echo "## Reason"
+            echo
+            echo "${REASON}"
+            echo
+            echo "## Installed versions (linux/amd64)"
+            echo
+            echo '```'
+            grep -E '^(version|debian|user):' test-output-amd64.txt || echo "(no version lines in the test output)"
+            echo '```'
+            echo
+            echo "## Inputs"
+            echo
+            echo '```'
+            tr ' ' '\n' <<< "${INPUTS}"
+            echo '```'
+          } > notes.md
+          if gh release view "v${VERSION}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            gh release edit "v${VERSION}" --repo "${GITHUB_REPOSITORY}" --notes-file notes.md
+          else
+            gh release create "v${VERSION}" --repo "${GITHUB_REPOSITORY}" --target "${GITHUB_SHA}" \
+              --title "v${VERSION}" --notes-file notes.md
+          fi

@@ -1,9 +1,9 @@
-ARG VARIANT="bookworm"
-FROM buildpack-deps:${VARIANT}-curl
+# Debian 13 "trixie" with curl, wget, ca-certificates, gnupg and other basics
+FROM buildpack-deps:trixie-curl
 
-# --- Accept build-time values ---
+# --- Accept build-time values (set by the release workflow) ---
 ARG OCI_IMAGE_TITLE="DevContainer Base Environment"
-ARG OCI_IMAGE_DESCRIPTION="Base Dev Container setup based on Debian 12 with custom user management and development tools"
+ARG OCI_IMAGE_DESCRIPTION="Base Dev Container based on Debian 13 (trixie) with Go, Node.js LTS, Deno LTS, Prettier and common development tools"
 ARG OCI_IMAGE_VERSION="dev"
 ARG OCI_IMAGE_REVISION="unknown"
 ARG OCI_IMAGE_REF_NAME="main"
@@ -14,6 +14,10 @@ ARG OCI_IMAGE_CREATED=""
 ARG OCI_IMAGE_AUTHORS="majikmate"
 ARG OCI_IMAGE_VENDOR="majikmate"
 ARG OCI_IMAGE_LICENSES="MIT"
+# Inputs of this image (base image, features, tool versions, configuration) and
+# their fingerprint. The release workflow compares them to decide if a rebuild is needed.
+ARG DEVCONTAINER_INPUTS=""
+ARG DEVCONTAINER_FINGERPRINT=""
 
 # --- Bake them as runtime env (persist in image) ---
 ENV OCI_IMAGE_TITLE="$OCI_IMAGE_TITLE" \
@@ -41,4 +45,6 @@ LABEL org.opencontainers.image.title="$OCI_IMAGE_TITLE" \
       org.opencontainers.image.created="$OCI_IMAGE_CREATED" \
       org.opencontainers.image.authors="$OCI_IMAGE_AUTHORS" \
       org.opencontainers.image.vendor="$OCI_IMAGE_VENDOR" \
-      org.opencontainers.image.licenses="$OCI_IMAGE_LICENSES"
+      org.opencontainers.image.licenses="$OCI_IMAGE_LICENSES" \
+      io.github.majikmate.devcontainer.inputs="$DEVCONTAINER_INPUTS" \
+      io.github.majikmate.devcontainer.fingerprint="$DEVCONTAINER_FINGERPRINT"

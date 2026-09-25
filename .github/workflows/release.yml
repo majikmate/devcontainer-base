@@ -1,0 +1,69 @@
+# Builds, tests and releases ghcr.io/majikmate/devcontainer-base.
+# The logic is in the shared workflow devcontainer-image.yml (see its header).
+name: Release
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  # Hourly check for new versions of the base image, features and tools
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Release a new version even if no input changed
+        type: boolean
+        default: false
+      bump:
+        description: Version step
+        type: choice
+        options: [auto, patch, minor, major]
+        default: auto
+
+# One release at a time; pull requests cancel their older runs
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || 'release' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  image:
+    uses: ./.github/workflows/devcontainer-image.yml
+    permissions:
+      contents: write
+      packages: write
+      actions: write
+    with:
+      image-title: DevContainer Base Environment
+      image-description: Base Dev Container based on Debian 13 (trixie) with Go, Node.js LTS, Deno LTS, Prettier and common development tools
+      # Increase together with a breaking change (for example a new Debian release)
+      major-version: 2
+      force: ${{ inputs.force || false }}
+      bump: ${{ inputs.bump || 'auto' }}
+      smoke-test: |
+        set -e
+        . /etc/os-release
+        echo "debian: ${PRETTY_NAME}"
+        test "${VERSION_CODENAME}" = "trixie"
+        echo "user: $(whoami)"
+        echo "version: go=$(go env GOVERSION | sed 's/^go//')"
+        echo "version: node=$(node --version)"
+        echo "version: npm=$(npm --version)"
+        echo "version: pnpm=$(pnpm --version)"
+        echo "version: nvm=$(. "${NVM_DIR}/nvm.sh" && nvm --version)"
+        echo "version: deno=$(deno --version | head -n 1 | cut -d ' ' -f 2)"
+        echo "version: golangci-lint=$(golangci-lint --version | sed -n 's/.*version \([^ ]*\).*/\1/p')"
+        echo "version: prettier=$(prettier --version)"
+        echo "version: prettier-plugin-tailwindcss=$(node -p "require('/usr/local/lib/node_modules/prettier-plugin-tailwindcss/package.json').version")"
+        echo "--- Locale"
+        cat /etc/default/locale
+        echo "--- Git"
+        git config --system --list
+        echo "--- Prettier: standard style and Tailwind CSS class sorting"
+        mkdir -p /tmp/smoke && cd /tmp/smoke
+        printf '<div class="text-center p-4 flex card"></div>\n' > index.html
+        prettier index.html | tee /dev/stderr | grep -F 'class="card flex p-4 text-center"'
+        echo "--- Deno"
+        echo 'const n: number = 1 + 1; console.log(n)' > check.ts
+        deno run check.ts | grep -x 2

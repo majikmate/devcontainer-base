@@ -1,224 +1,202 @@
 # DevContainer Base
 
-This repository contains a base devcontainer configuration that provides common
-development tools and settings for Go, Node.js, and Deno development
-environments. It serves as the foundation for specialized devcontainer projects.
+The base [Dev Container](https://containers.dev/) image for the majikmate
+classroom and development environments. It contains Go, Node.js, Deno, Prettier
+and common tools on Debian 13 "trixie", and a shared VS Code configuration.
 
-## Overview
+Published image: `ghcr.io/majikmate/devcontainer-base` (linux/amd64 and
+linux/arm64)
 
-The base configuration consolidates common functionality that was previously
-duplicated across multiple devcontainer projects. It includes:
-
-- **Base Image**: Debian Bookworm (buildpack-deps)
-- **Programming Languages**: Go (latest), Node.js (LTS), Deno (latest)
-- **Development Tools**: Git configuration, common utilities, locales, aliases
-- **VS Code Configuration**: Essential extensions and settings for development
-
-## Architecture
-
-This base configuration is extended by specialized environments:
+## Images and their dependencies
 
 ```
-devcontainer-base (this repo)
-├── Base Dockerfile with OCI metadata
-├── Core features (Go, Node.js, Deno, git, etc.)
-├── Common VS Code settings
-└── GitHub Actions workflow for publishing
-
-devcontainer-dev
-├── Extends: ghcr.io/majikmate/devcontainer-base:latest
-├── Adds: GitHub CLI, devcontainer CLI
-├── User: dev
-└── Dev-specific extensions and JSON schemas
-
-devcontainer-classroom-web
-├── Extends: ghcr.io/majikmate/devcontainer-base:latest
-├── Adds: LiveServer, Lorem Ipsum extensions
-├── User: student
-├── Disables: AI features, GitHub extensions
-└── Hides: Configuration folders
+devcontainer-features  (features: locales, aliases, git, pure-prompt, deno, prettier, playwright-deps, update-os)
+        │
+        ├──► devcontainer-base      (this repository)
+        │           ├──► devcontainer-classroom-web            (classroom image for web development)
+        │           ├──► devcontainer-classroom-web-advanced   (advanced web development, with AI)
+        │           └──► devcontainer-dev                      (development image)
+        │
+        └──► devcontainer-classroom-exam-ts                   (standalone exam image, Deno only)
 ```
 
-## Features Included
+All these images use the shared release workflow of this repository (see
+[Automatic releases](#automatic-releases)).
 
-### Core Development Features
+## What the image contains
 
-- **common-utils** (v2.5.4): Basic development utilities with custom user
-  management
-- **go** (v1.3.2): Latest Go development environment
-- **node** (v1.6.3): Node.js LTS with npm, pnpm, and nvm
-- **deno** (v1.0.0): Latest Deno runtime
-- **locales** (v1.0.2): US English locale configuration
-- **aliases** (v1.0.1): Helpful command aliases (ls, ll, vs, grep)
-- **git** (v1.0.0): Git configuration and optimizations
-- **update-os** (v1.0.0): System updates (runs last in feature order)
+| Tool                                                                  | Version                                    | Installed by                                           |
+| --------------------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------ |
+| Debian                                                                | 13 "trixie" (`buildpack-deps:trixie-curl`) | `.devcontainer/Dockerfile`                             |
+| Go, golangci-lint                                                     | newest release (no beta/rc)                | `ghcr.io/devcontainers/features/go:1`                  |
+| Node.js, npm                                                          | newest **LTS** release                     | `ghcr.io/devcontainers/features/node:2`                |
+| pnpm, nvm                                                             | newest release                             | `ghcr.io/devcontainers/features/node:2`                |
+| Deno                                                                  | newest **LTS** release                     | `ghcr.io/majikmate/devcontainer-features/deno:1`       |
+| Prettier, Tailwind CSS plugin                                         | newest release                             | `ghcr.io/majikmate/devcontainer-features/prettier:1`   |
+| zsh with Pure prompt, SSH server, locales, aliases, git configuration | –                                          | `common-utils:2`, `sshd:1`, and the majikmate features |
 
-### VS Code Configuration
+Operating system packages are upgraded at build time (feature `update-os`). The
+default user is `dev` (UID/GID 1000).
 
-- **Extensions**:
-  - Markdown preview (`bierner.github-markdown-preview`)
-  - Go language support (`golang.go`)
-  - Deno runtime support (`denoland.vscode-deno`)
-  - PlantUML diagrams (`jebbs.plantuml`)
-  - PDF viewer (`tomoki1207.pdf`)
-- **Settings**:
-  - Terminal configuration (zsh default)
-  - Editor settings with Deno formatter for web files
-  - Git workflows with auto-sync
-  - PlantUML local rendering with SVG export
-- **Theme**: Visual Studio Dark
-- **Deno Integration**: Enabled as TypeScript language server
-- **Formatting**: Deno configured as default formatter for:
-  - HTML, CSS
-  - JavaScript, TypeScript, JSX, TSX
-  - JSON, JSONC
+The exact versions of each release are listed in its
+[release notes](https://github.com/majikmate/devcontainer-base/releases).
 
-### Git Workflow Optimization
+## Formatting
 
-The configuration includes optimized Git settings for smooth development
-workflows:
+The image uses **Prettier** as the only formatter, with the **standard Prettier
+style** (no style options).
 
-- Auto-fetch and auto-stash enabled
-- Rebase-based sync operations
-- Smart commit behavior
-- Automatic post-commit sync
+- Prettier is the default formatter for all file types
+  (`editor.defaultFormatter`), with format on save. Because of this, VS Code
+  never uses the Deno formatter. If Prettier cannot format a file type, VS Code
+  shows a short notice and does not format the file.
+- Exceptions with their own standard formatter: Go (`gofmt` through the Go
+  extension) and PlantUML.
+- The editor inserts 2 spaces per indentation level, the same as the standard
+  Prettier output (Go uses tabs).
+- **Tailwind CSS classes are sorted** into the standard order (in `class`,
+  `className` and `@apply`). The feature `prettier` writes the global
+  configuration `/.prettierrc.json`, which only loads the plugin
+  `prettier-plugin-tailwindcss`. Prettier searches for a configuration from the
+  folder of a file upward to `/`, so every project without its own Prettier
+  configuration uses it — in the editor and with the `prettier` command in the
+  terminal. A project with its own Prettier configuration uses its own
+  configuration.
+- The editor and the terminal use the same Prettier installation
+  (`/usr/local/lib/node_modules/prettier`).
 
-## Usage
+Deno stays the JavaScript/TypeScript runtime and language server
+(`deno.enable: true`). The command `deno fmt` is part of Deno and still
+exists, but the setup does not use it.
 
-### Extending the Base
+## VS Code configuration
 
-To use this base configuration in your project, reference the published image:
+- Extensions: GitHub Markdown preview, Go, Deno, Prettier, PlantUML, PDF viewer.
+  The ESLint extension that the Node.js feature adds is removed.
+- Terminal: zsh.
+- Markdown files open in the preview.
+- Theme: "Dark (Visual Studio)".
+- Deno test code lens and Test Explorer run tests with
+  `--allow-all --check=all`.
+- Git: auto fetch, auto stash, rebase on sync, sync after commit.
+- PlantUML: rendering on the PlantUML server, export as SVG.
 
-```json
+## Tags and versions
+
+- `2.x.y` — Debian 13 "trixie" (current).
+- `1.x.y` — Debian 12 "bookworm" (no more updates).
+- `2`, `2.x` and `latest` always point to the newest `2.x.y` release.
+
+Images that extend this base should use the major version tag (`:2`). They then
+receive all compatible updates automatically, but no breaking changes.
+
+## Automatic releases
+
+Tools that are installed as "latest" or "lts" are fixed when an image is built.
+To keep the image current, the workflow
+[`.github/workflows/release.yml`](.github/workflows/release.yml) runs every
+hour and builds a new image when one of its inputs changed. The logic is in the
+shared workflow
+[`.github/workflows/devcontainer-image.yml`](.github/workflows/devcontainer-image.yml),
+which the other image repositories use as well.
+
+**Inputs of the image**
+
+1. The content of the `.devcontainer` folder.
+2. The digest of the base image `buildpack-deps:trixie-curl`.
+3. The digest of every feature. Features are pinned by major version, so a new
+   minor or patch version of a feature changes this digest.
+4. The newest versions of the tools, read by
+   [`.github/tool-versions.sh`](.github/tool-versions.sh) from the same sources
+   that the installers use: Go (Go git tags), Node.js LTS (Node.js release
+   index), Deno LTS (`dl.deno.land`), pnpm, nvm, golangci-lint, Prettier and the
+   Tailwind CSS plugin.
+
+The inputs are stored in the image label `io.github.majikmate.devcontainer.inputs`.
+
+**When a new version is released**
+
+| Event                       | Result                                                                                               |
+| --------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Pull request                | Build and test both architectures. Nothing is published.                                             |
+| Push to `main`              | Release if an input changed.                                                                         |
+| Hourly check                | Release if an input changed, or if the newest image is older than 7 days (operating system updates). |
+| Tag `vX.Y.Z` pushed         | Release exactly this version.                                                                        |
+| Manual run ("Run workflow") | Options `force` (release even without changes) and `bump`.                                           |
+
+**Version numbers**: automatic releases increase the patch number. The minor
+number increases when the major version of Go (1.x), Node.js or Deno changes.
+The major version is set in `release.yml` (`major-version`); increase it
+together with a breaking change.
+
+**Every release**
+
+- is built without build cache, so it contains the newest tools and packages;
+- is tested inside the built container (versions, Debian release, Prettier with
+  Tailwind CSS sorting, Deno);
+- gets the tags `X.Y.Z`, `X.Y`, `X` and `latest`, and a GitHub release whose
+  notes list the reason, the installed versions and all inputs.
+
+The images that extend this base run the same hourly check. They find the new
+base image digest and release themselves.
+
+> GitHub turns off scheduled workflows in public repositories after 60 days
+> without activity. The hourly run re-enables its own workflow to prevent this.
+> If it is turned off anyway, enable it again under **Actions → Release**.
+
+## Extending the base
+
+```jsonc
 {
-    "name": "My Project",
-    "image": "ghcr.io/majikmate/devcontainer-base:latest",
-    "remoteUser": "dev",
-    "features": {
-        // Add additional features here
+  "name": "My Project",
+  "image": "ghcr.io/majikmate/devcontainer-base:2",
+  "features": {
+    // Add additional features here
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        // Add project-specific extensions
+        // Use "-publisher.extension" to remove an extension of the base
+      ],
+      "settings": {
+        // Override or add settings
+      },
     },
-    "customizations": {
-        "vscode": {
-            "extensions": [
-                // Add project-specific extensions
-            ],
-            "settings": {
-                // Override or add settings
-            }
-        }
-    }
+  },
 }
 ```
 
-### Examples
-
-See the `examples/` directory for complete working examples:
-
-- **`dev-example/`**: Development environment with GitHub CLI and devcontainer
-  CLI
-- **`classroom-example/`**: Educational environment with student user and
-  disabled AI features
-
-## Container Registry
-
-The base image is published to GitHub Container Registry:
-
-- **Registry**: `ghcr.io/majikmate/devcontainer-base`
-- **Tags**: `latest` (main branch), versioned tags for releases
-- **Architectures**: AMD64, ARM64
-
-## Customization Patterns
-
-### User Configuration
-
-The base uses `dev` as the default user. Override this in extending
-configurations:
-
-```json
-{
-    "remoteUser": "student",
-    "features": {
-        "ghcr.io/devcontainers/features/common-utils:2.5.4": {
-            "username": "student",
-            "userUid": "1000",
-            "userGId": "1000"
-        }
-    }
-}
-```
-
-### Adding Project-Specific Features
-
-```json
-{
-    "features": {
-        "ghcr.io/devcontainers/features/github-cli:1.0.15": {
-            "installDirectlyFromGitHubRelease": true,
-            "version": "latest"
-        }
-    }
-}
-```
-
-### Disabling Extensions
-
-Use negative extension names to disable unwanted extensions:
-
-```json
-{
-    "customizations": {
-        "vscode": {
-            "extensions": [
-                "-github.copilot",
-                "-github.copilot-chat"
-            ]
-        }
-    }
-}
-```
+The VS Code settings and extensions of the base are stored in the image and
+apply to every image that extends it.
 
 ## Development
 
-### Building Locally
-
 ```bash
-# Build the container
-devcontainer build .devcontainer
+# Build and start the container locally
+devcontainer build --workspace-folder .
+devcontainer up --workspace-folder .
 
-# Test the container
-devcontainer up .devcontainer
+# Check the newest tool versions
+.github/tool-versions.sh
 ```
 
-### Publishing
+Change the image through a pull request: the pull request build tests both
+architectures. After the merge, the image is released automatically.
 
-The container is automatically built and published via GitHub Actions:
+## Related repositories
 
-- **On push to main**: Builds and caches (doesn't publish)
-- __On version tag (v_)_*: Builds, caches, and publishes to registry
-
-## Migration from Standalone Configurations
-
-If migrating from a standalone devcontainer configuration:
-
-1. **Remove Dockerfile**: No longer needed, use base image instead
-2. **Update devcontainer.json**: Change from `"build"` to `"image"` reference
-3. **Remove duplicate features**: Common features are now in the base
-4. **Keep only specific customizations**: Extensions, settings, and features
-   unique to your use case
-5. **Update workflows**: Remove OCI metadata build args, simplify build process
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Test changes with extending configurations
-4. Submit a pull request
+- [devcontainer-features](https://github.com/majikmate/devcontainer-features):
+  the majikmate features used by this image
+- [devcontainer-classroom-web](https://github.com/majikmate/devcontainer-classroom-web):
+  classroom image for web development
+- [devcontainer-classroom-web-advanced](https://github.com/majikmate/devcontainer-classroom-web-advanced):
+  classroom image for advanced web development, with AI assistance
+- [devcontainer-dev](https://github.com/majikmate/devcontainer-dev):
+  development image
+- [devcontainer-classroom-exam-ts](https://github.com/majikmate/devcontainer-classroom-exam-ts):
+  standalone exam image for TypeScript/Deno (uses the shared release workflow)
 
 ## License
 
-MIT License - see LICENSE file for details.
-
-## Related Repositories
-
-- **devcontainer-dev**: Development environment extending this base
-- **devcontainer-classroom-web**: Classroom environment extending this base
+MIT
