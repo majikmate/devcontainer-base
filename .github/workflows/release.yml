@@ -7,9 +7,11 @@ on:
     branches: [main]
     tags: ["v*"]
   pull_request:
-  # Hourly check for new versions of the base image, features and tools
+  # Nightly check for new versions of the base image, features and tools.
+  # The images that extend this base run their check two hours later.
   schedule:
-    - cron: "17 * * * *"
+    - cron: "17 1 * * *"
+  # Manual check ("Run workflow"): the same check as the nightly run, at once
   workflow_dispatch:
     inputs:
       force:

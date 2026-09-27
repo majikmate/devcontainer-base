@@ -1,7 +1,9 @@
 # Shared workflow: build, test and release a Dev Container image.
 #
 # Used by the release.yml workflow of every image repository
-# (devcontainer-base, devcontainer-classroom-web, devcontainer-dev).
+# (devcontainer-base, devcontainer-classroom-web,
+# devcontainer-classroom-web-advanced, devcontainer-dev,
+# devcontainer-classroom-exam-ts).
 #
 # How it decides:
 #   1. It collects the "inputs" of the image: the .devcontainer folder, the digest
@@ -82,7 +84,7 @@ jobs:
 
       # GitHub disables scheduled workflows in public repositories after 60 days
       # without repository activity. Re-enabling the workflow on every scheduled
-      # run keeps the hourly check active.
+      # run keeps the nightly check active.
       - name: Keep the scheduled check enabled
         if: github.event_name == 'schedule'
         env:

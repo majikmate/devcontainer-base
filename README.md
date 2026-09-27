@@ -95,7 +95,9 @@ receive all compatible updates automatically, but no breaking changes.
 Tools that are installed as "latest" or "lts" are fixed when an image is built.
 To keep the image current, the workflow
 [`.github/workflows/release.yml`](.github/workflows/release.yml) runs every
-hour and builds a new image when one of its inputs changed. The logic is in the
+night at 01:17 UTC and builds a new image when one of its inputs changed. You
+can also start the same check at any time (see
+[Manual check](#manual-check)). The logic is in the
 shared workflow
 [`.github/workflows/devcontainer-image.yml`](.github/workflows/devcontainer-image.yml),
 which the other image repositories use as well.
@@ -120,9 +122,9 @@ The inputs are stored in the image label `io.github.majikmate.devcontainer.input
 | --------------------------- | ---------------------------------------------------------------------------------------------------- |
 | Pull request                | Build and test both architectures. Nothing is published.                                             |
 | Push to `main`              | Release if an input changed.                                                                         |
-| Hourly check                | Release if an input changed, or if the newest image is older than 7 days (operating system updates). |
+| Nightly check (01:17 UTC)   | Release if an input changed, or if the newest image is older than 7 days (operating system updates). |
+| Manual run ("Run workflow") | The same as the nightly check. Options `force` (release even without changes) and `bump`.            |
 | Tag `vX.Y.Z` pushed         | Release exactly this version.                                                                        |
-| Manual run ("Run workflow") | Options `force` (release even without changes) and `bump`.                                           |
 
 **Version numbers**: automatic releases increase the patch number. The minor
 number increases when the major version of Go (1.x), Node.js or Deno changes.
@@ -137,11 +139,34 @@ together with a breaking change.
 - gets the tags `X.Y.Z`, `X.Y`, `X` and `latest`, and a GitHub release whose
   notes list the reason, the installed versions and all inputs.
 
-The images that extend this base run the same hourly check. They find the new
-base image digest and release themselves.
+**Schedule of all images** (UTC). The images that extend this base run their
+check two hours after the base image. They find the new base image digest and
+release themselves in the same night. The two hours cover the build time and a
+late start of a scheduled run, which GitHub delays when it is busy.
+
+| Image                                                                                                   | Nightly check |
+| ------------------------------------------------------------------------------------------------------- | ------------- |
+| devcontainer-base (this repository)                                                                     | 01:17         |
+| [devcontainer-classroom-exam-ts](https://github.com/majikmate/devcontainer-classroom-exam-ts)           | 01:27         |
+| [devcontainer-dev](https://github.com/majikmate/devcontainer-dev)                                       | 03:37         |
+| [devcontainer-classroom-web](https://github.com/majikmate/devcontainer-classroom-web)                   | 03:47         |
+| [devcontainer-classroom-web-advanced](https://github.com/majikmate/devcontainer-classroom-web-advanced) | 03:57         |
+
+A new tool or feature version therefore reaches all images within one night.
+
+### Manual check
+
+To check for new versions at once, open **Actions → Release → Run workflow**
+and keep the default options. The run releases a new version only if an input
+changed. Set `force` to release a new version without a change, and `bump` to
+select the version step.
+
+A manual run releases only the image of its own repository. To bring a new base
+image into the images that extend it at once, run their Release workflow
+after the base release has finished. Otherwise they follow in the next night.
 
 > GitHub turns off scheduled workflows in public repositories after 60 days
-> without activity. The hourly run re-enables its own workflow to prevent this.
+> without activity. The nightly run re-enables its own workflow to prevent this.
 > If it is turned off anyway, enable it again under **Actions → Release**.
 
 ## Extending the base

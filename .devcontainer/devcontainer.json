@@ -27,7 +27,7 @@
   "remoteUser": "dev",
   // Features are pinned by major version: new minor and patch versions are
   // installed automatically at the next build (the release workflow checks
-  // every hour). Dependabot proposes new major versions as pull requests.
+  // every night). Dependabot proposes new major versions as pull requests.
   // Tools with "latest"/"lts" are resolved at build time; the release workflow
   // watches their versions (.github/tool-versions.sh) and rebuilds the image.
   "features": {
