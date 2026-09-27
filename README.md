@@ -32,7 +32,7 @@ The image is the core image plus four layers. Each layer is one line in
 | ---------- | --------------------------------------------------------------- | --------------------------- |
 | (core)     | Debian 13, user `dev` with zsh and sudo, locales, git settings, aliases, Pure prompt, SSH server on port 2222 | see devcontainer-core |
 | `go`       | Go, gopls, dlv, staticcheck, govulncheck, golangci-lint         | newest release (no beta/rc) |
-| `node`     | nvm, Node.js, npm, pnpm                                          | newest **LTS** release of Node.js |
+| `node`     | nvm, Node.js, npm (no pnpm, no yarn)                             | newest **LTS** release of Node.js |
 | `deno`     | Deno                                                             | newest **LTS** release      |
 | `prettier` | Prettier with `prettier-plugin-tailwindcss`, global configuration `/.prettierrc.json` | newest release |
 

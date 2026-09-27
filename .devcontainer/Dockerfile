@@ -18,13 +18,12 @@ ARG GOVULNCHECK_VERSION
 ARG GOLANGCI_LINT_VERSION
 RUN devcon install go
 
-# node: nvm, Node.js LTS, npm, pnpm
+# node: nvm, Node.js LTS, npm
 ENV NVM_DIR=/usr/local/share/nvm \
     NVM_SYMLINK_CURRENT=true \
     PATH=/usr/local/share/nvm/current/bin:$PATH
 ARG NVM_VERSION
 ARG NODE_VERSION
-ARG PNPM_VERSION
 RUN devcon install node
 
 # deno: Deno LTS
