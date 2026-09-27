@@ -103,8 +103,8 @@ public keys of your GitHub account (no password, no root login). See
 ## Tags and versions
 
 - `2.x.y` — Debian 13 "trixie" (current).
-- `1.x.y` — Debian 12 "bookworm" (no more updates).
 - `2`, `2.x` and `latest` always point to the newest `2.x.y` release.
+- The former `1.x.y` images (Debian 12 "bookworm") are deleted.
 
 Images that extend this base should use the major version tag (`:2`). They then
 receive all compatible updates automatically, but no breaking changes.
@@ -138,6 +138,20 @@ builds on, so a change reaches all images within one night:
 | [devcontainer-dev](https://github.com/majikmate/devcontainer-dev)                                       | base      | 03:37         |
 | [devcontainer-classroom-web](https://github.com/majikmate/devcontainer-classroom-web)                   | base      | 03:47         |
 | [devcontainer-classroom-web-advanced](https://github.com/majikmate/devcontainer-classroom-web-advanced) | base      | 03:57         |
+
+### Kept package versions
+
+After every release run, the outdated versions of the image package are
+deleted (rules: [Releases](https://github.com/majikmate/devcontainer-core#releases)):
+
+- releases older than 90 days; the newest release and the tags `2`, `2.x` and
+  `latest` are always kept,
+- versions of older major lines and untagged versions that no image uses.
+
+A full version (for example `:2.0.3`) stays available for at least 90 days
+after its release. The manual workflow **Actions → Prune → Run workflow** lists
+(`report`) or deletes (`apply`) the outdated versions at once; the scope
+`all-but-newest` deletes every release except the newest.
 
 ### Manual check and chain build
 
