@@ -10,9 +10,9 @@ Go, Node.js, Deno and Prettier, with a shared VS Code configuration.
 
 ```text
                                                Nightly Content
-devcontainer-features                                  Go library of layers, compiled into devcon
+devcontainer-features                                  Go library of layers, compiled into devenv
   ▼
-devcontainer-core:1                            23:17   Debian 13, devcon, user dev, zsh, SSH server
+devcontainer-core:1                            23:17   Debian 13, devenv, user dev, zsh, SSH server
 ├── devcontainer-base:2                        01:17   + go, build-tools, node, deno, prettier
 │   ├── devcontainer-dev:2                     03:37   + github-cli
 │   ├── devcontainer-classroom-web:2           03:47   classroom settings, AI off
@@ -37,7 +37,7 @@ Build an image on this base in `.devcontainer/Dockerfile` and add layers:
 FROM ghcr.io/majikmate/devcontainer-base:2
 
 ARG GITHUB_CLI_VERSION
-RUN devcon install github-cli
+RUN devenv install github-cli
 ```
 
 - `:2` receives all compatible updates (new tool versions, security updates).
@@ -51,16 +51,16 @@ Each layer is one line in [`.devcontainer/Dockerfile`](.devcontainer/Dockerfile)
 | Layer | Content | Version |
 | ----- | ------- | ------- |
 | (devcontainer-core) | Debian 13, user `dev`, zsh, locales, git settings, aliases, Pure prompt, SSH server on port 2222 | see core |
-| `go` | Go, gopls, dlv, staticcheck, govulncheck, golangci-lint | Go 1.27.x (`GO_PIN=1.27`); the Go tools in the newest version that works with this Go |
+| `go` | Go, gopls, dlv, staticcheck, govulncheck, golangci-lint | Go 1.27.x; the Go tools in the newest version that works with this Go |
 | `build-tools` | make, gcc, g++, python3 (for native npm modules) | Debian packages |
-| `node` | nvm, Node.js, npm (no pnpm, no yarn) | Node.js 24.x (`NODE_PIN=24`) |
-| `deno` | Deno | Deno 2.x (`DENO_PIN=2`) |
+| `node` | nvm, Node.js, npm (no pnpm, no yarn) | Node.js 24.x LTS |
+| `deno` | Deno | Deno 2.x LTS (the release of `deno upgrade lts`) |
 | `prettier` | Prettier with `prettier-plugin-tailwindcss`, global configuration `/.prettierrc.json` | newest release |
 
-**Pinned release lines:** when a pinned line reaches its end of life, the
-nightly check and the build fail and name the supported lines; then change the
-pin in the Dockerfile
-([rules](https://github.com/majikmate/devcontainer-features#pinned-release-lines)).
+**Versions:** the features decide the pinned lines and channels, not this
+Dockerfile ([rules](https://github.com/majikmate/devcontainer-features#versions)).
+When a pinned line reaches its end of life, the nightly check and the build
+fail and name the supported lines.
 Details of all layers:
 [docs/layers.md](https://github.com/majikmate/devcontainer-core/blob/main/docs/layers.md).
 
@@ -80,8 +80,8 @@ Details of all layers:
 ## Releases
 
 - **Nightly check at 01:17 UTC.** A new version is released when an input
-  changes: `.devcontainer`, `README.md`, the digest of `devcontainer-core:1`, or the newest
-  version of a tool inside its pinned line. Pending Debian updates and an age
+  changes: `.devcontainer`, `README.md`, the digest of `devcontainer-core:1`, or the
+  version of a tool (see Versions). Pending Debian updates and an age
   above 7 days also lead to a new version.
 - **Version step:** patch; minor when Go 1.x or the major version of Node.js
   or Deno changes.
