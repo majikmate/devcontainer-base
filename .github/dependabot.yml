@@ -1,17 +1,15 @@
+# Weekly updates of the GitHub actions and the base image.
+# The tools in the image (Go, Node.js, Deno, ...) are not updated here: the
+# release workflow checks their newest versions every night.
 version: 2
 updates:
-  # New major versions of the features (minor and patch versions are
-  # installed automatically, because the features are pinned by major version)
-  - package-ecosystem: "devcontainers"
-    directory: "/"
+  - package-ecosystem: github-actions
+    directory: /
     schedule:
-      interval: "weekly"
+      interval: weekly
     commit-message:
-      prefix: "feat(devcontainer)"
-
-  - package-ecosystem: "github-actions"
-    directory: "/"
+      prefix: ci
+  - package-ecosystem: docker
+    directory: /.devcontainer
     schedule:
-      interval: "weekly"
-    commit-message:
-      prefix: "ci"
+      interval: weekly
