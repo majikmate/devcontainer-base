@@ -18,6 +18,10 @@ ARG GOVULNCHECK_VERSION
 ARG GOLANGCI_LINT_VERSION
 RUN devcon install go
 
+# build-tools: make, gcc, g++, python3 for native npm modules (node-gyp);
+# the layer node needs it
+RUN devcon install build-tools
+
 # node: nvm, Node.js LTS, npm
 ENV NVM_DIR=/usr/local/share/nvm \
     NVM_SYMLINK_CURRENT=true \

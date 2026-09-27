@@ -25,13 +25,14 @@ devcontainer-core. There are no Dev Container features.
 
 ## What the image contains
 
-The image is the core image plus four layers. Each layer is one line in
+The image is the core image plus five layers. Each layer is one line in
 [`.devcontainer/Dockerfile`](.devcontainer/Dockerfile):
 
 | Layer      | Content                                                         | Version                     |
 | ---------- | --------------------------------------------------------------- | --------------------------- |
 | (core)     | Debian 13, user `dev` with zsh and sudo, locales, git settings, aliases, Pure prompt, SSH server on port 2222 | see devcontainer-core |
 | `go`       | Go, gopls, dlv, staticcheck, govulncheck, golangci-lint         | newest release (no beta/rc) |
+| `build-tools` | make, gcc, g++, python3 for native npm modules (needed by `node`) | Debian packages          |
 | `node`     | nvm, Node.js, npm (no pnpm, no yarn)                             | newest **LTS** release of Node.js |
 | `deno`     | Deno                                                             | newest **LTS** release      |
 | `prettier` | Prettier with `prettier-plugin-tailwindcss`, global configuration `/.prettierrc.json` | newest release |
