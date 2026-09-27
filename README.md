@@ -80,7 +80,7 @@ Details of all layers:
 ## Releases
 
 - **Nightly check at 01:17 UTC.** A new version is released when an input
-  changes: `.devcontainer`, the digest of `devcontainer-core:1`, or the newest
+  changes: `.devcontainer`, `README.md`, the digest of `devcontainer-core:1`, or the newest
   version of a tool inside its pinned line. Pending Debian updates and an age
   above 7 days also lead to a new version.
 - **Version step:** patch; minor when Go 1.x or the major version of Node.js
@@ -96,8 +96,9 @@ Rules: [Releases](https://github.com/majikmate/devcontainer-core#releases).
 
 ## Change the image
 
-Change `.devcontainer/` through a pull request. After the merge, the new image
-is released automatically.
+Change `.devcontainer/` or `README.md` through a pull request. After the merge,
+the new image is released automatically (GitHub shows the README of the newest
+image on the package page).
 
 ## License
 
