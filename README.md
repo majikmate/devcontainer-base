@@ -1,8 +1,10 @@
-# DevContainer Base
+# Dev Container Base
 
 The base [Dev Container](https://containers.dev/) image for the majikmate
-classroom and development environments. It contains Go, Node.js, Deno, Prettier
-and common tools on Debian 13 "trixie", and a shared VS Code configuration.
+classroom and development environments. It adds Go, Node.js, Deno and Prettier
+to [devcontainer-core](https://github.com/majikmate/devcontainer-core)
+(Debian 13 "trixie", user `dev`, zsh, SSH server), and a shared VS Code
+configuration.
 
 Published image: `ghcr.io/majikmate/devcontainer-base` (linux/amd64 and
 linux/arm64)
@@ -10,34 +12,32 @@ linux/arm64)
 ## Images and their dependencies
 
 ```
-devcontainer-features  (features: locales, aliases, git, pure-prompt, deno, prettier, playwright-deps, update-os)
-        │
-        ├──► devcontainer-base      (this repository)
-        │           ├──► devcontainer-classroom-web            (classroom image for web development)
-        │           ├──► devcontainer-classroom-web-advanced   (advanced web development, with AI)
-        │           └──► devcontainer-dev                      (development image)
-        │
-        └──► devcontainer-classroom-exam-ts                   (standalone exam image, Deno only)
+devcontainer-core                         (Debian 13, user dev, zsh, locales, git, Pure prompt, SSH server)
+├── devcontainer-base                     (this repository: + go, node, deno, prettier)
+│   ├── devcontainer-classroom-web            (classroom image for web development)
+│   ├── devcontainer-classroom-web-advanced   (+ playwright-deps; advanced web development, with AI)
+│   └── devcontainer-dev                      (+ github-cli; development image)
+└── devcontainer-classroom-exam-ts        (+ deno; standalone exam image)
 ```
 
-All these images use the shared release workflow of this repository (see
-[Automatic releases](#automatic-releases)).
+All images use the shared release workflow and the layer tool `devcon` of
+devcontainer-core. There are no Dev Container features.
 
 ## What the image contains
 
-| Tool                                                                  | Version                                    | Installed by                                           |
-| --------------------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------ |
-| Debian                                                                | 13 "trixie" (`buildpack-deps:trixie-curl`) | `.devcontainer/Dockerfile`                             |
-| Go, golangci-lint                                                     | newest release (no beta/rc)                | `ghcr.io/devcontainers/features/go:1`                  |
-| Node.js, npm                                                          | newest **LTS** release                     | `ghcr.io/devcontainers/features/node:2`                |
-| pnpm, nvm                                                             | newest release                             | `ghcr.io/devcontainers/features/node:2`                |
-| Deno                                                                  | newest **LTS** release                     | `ghcr.io/majikmate/devcontainer-features/deno:1`       |
-| Prettier, Tailwind CSS plugin                                         | newest release                             | `ghcr.io/majikmate/devcontainer-features/prettier:1`   |
-| zsh with Pure prompt, SSH server, locales, aliases, git configuration | –                                          | `common-utils:2`, `sshd:1`, and the majikmate features |
+The image is the core image plus four layers. Each layer is one line in
+[`.devcontainer/Dockerfile`](.devcontainer/Dockerfile):
 
-Operating system packages are upgraded at build time (feature `update-os`). The
-default user is `dev` (UID/GID 1000).
+| Layer      | Content                                                         | Version                     |
+| ---------- | --------------------------------------------------------------- | --------------------------- |
+| (core)     | Debian 13, user `dev` with zsh and sudo, locales, git settings, aliases, Pure prompt, SSH server on port 2222 | see devcontainer-core |
+| `go`       | Go, gopls, dlv, staticcheck, govulncheck, golangci-lint         | newest release (no beta/rc) |
+| `node`     | nvm, Node.js, npm (no pnpm, no yarn)                             | newest **LTS** release of Node.js |
+| `deno`     | Deno                                                             | newest **LTS** release      |
+| `prettier` | Prettier with `prettier-plugin-tailwindcss`, global configuration `/.prettierrc.json` | newest release |
 
+The details of every layer (build arguments, VS Code settings, tests) are in the
+[layer list](https://github.com/majikmate/devcontainer-core/blob/main/docs/layers.md).
 The exact versions of each release are listed in its
 [release notes](https://github.com/majikmate/devcontainer-base/releases).
 
@@ -50,12 +50,14 @@ style** (no style options).
   (`editor.defaultFormatter`), with format on save. Because of this, VS Code
   never uses the Deno formatter. If Prettier cannot format a file type, VS Code
   shows a short notice and does not format the file.
-- Exceptions with their own standard formatter: Go (`gofmt` through the Go
-  extension) and PlantUML.
+- Exception with its own standard formatter: Go (`gofmt` through the Go
+  extension).
+- PlantUML files are not formatted on save: the formatter of the PlantUML
+  extension is deprecated, and Prettier cannot format PlantUML.
 - The editor inserts 2 spaces per indentation level, the same as the standard
   Prettier output (Go uses tabs).
 - **Tailwind CSS classes are sorted** into the standard order (in `class`,
-  `className` and `@apply`). The feature `prettier` writes the global
+  `className` and `@apply`). The layer `prettier` writes the global
   configuration `/.prettierrc.json`, which only loads the plugin
   `prettier-plugin-tailwindcss`. Prettier searches for a configuration from the
   folder of a file upward to `/`, so every project without its own Prettier
@@ -71,15 +73,24 @@ exists, but the setup does not use it.
 
 ## VS Code configuration
 
-- Extensions: GitHub Markdown preview, Go, Deno, Prettier, PlantUML, PDF viewer.
-  The ESLint extension that the Node.js feature adds is removed.
-- Terminal: zsh.
-- Markdown files open in the preview.
-- Theme: "Dark (Visual Studio)".
-- Deno test code lens and Test Explorer run tests with
-  `--allow-all --check=all`.
-- Git: auto fetch, auto stash, rebase on sync, sync after commit.
-- PlantUML: rendering on the PlantUML server, export as SVG.
+The settings come from three places. The release workflow merges them into the
+image label `devcontainer.metadata`:
+
+| Source                                       | Settings                                                                                                  |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| devcontainer-core                            | user `dev`, terminal zsh, Markdown preview, theme "Dark (Visual Studio)", git (auto fetch, auto stash, rebase on sync, sync after commit), SSH start |
+| layers `go`, `deno`, `prettier`              | extensions Go, Deno, Prettier; Go formatting with `gofmt`; Deno tests with `--allow-all --check=all`; debugger options `capAdd: SYS_PTRACE` and `init: true` |
+| [`devcontainer.json`](.devcontainer/devcontainer.json) of this image | Prettier as default formatter, format on save, 2 spaces; PlantUML extension and server settings (no formatting of PlantUML files) |
+
+## SSH access
+
+The SSH server of devcontainer-core listens on port 2222 and accepts only the
+public keys of your GitHub account (no password, no root login). See
+[SSH access](https://github.com/majikmate/devcontainer-core#ssh-access):
+
+- Codespaces: works without setup.
+- Dev Containers extension: run `git config --global github.user <your-github-user>` once on your computer.
+- `docker run` locally or on a VM: `docker run -d -p 2222:2222 -e GITHUB_USER=<your-github-user> ghcr.io/majikmate/devcontainer-base:2`, then `ssh -p 2222 dev@<host>`.
 
 ## Tags and versions
 
@@ -92,161 +103,71 @@ receive all compatible updates automatically, but no breaking changes.
 
 ## Automatic releases
 
-Tools that are installed as "latest" or "lts" are fixed when an image is built.
-To keep the image current, the workflow
-[`.github/workflows/release.yml`](.github/workflows/release.yml) runs every
-night at 01:17 UTC and builds a new image when one of its inputs changed. You
-can also start the same check at any time (see
-[Manual check](#manual-check)). The logic is in the
-shared workflow
-[`.github/workflows/devcontainer-image.yml`](.github/workflows/devcontainer-image.yml),
-which the other image repositories use as well.
+The workflow [`.github/workflows/release.yml`](.github/workflows/release.yml)
+uses the shared workflow of devcontainer-core. The rules (inputs, version steps,
+tags, release notes) are described in
+[Releases](https://github.com/majikmate/devcontainer-core#releases). In short:
 
-**Inputs of the image**
+- **Inputs:** the `.devcontainer` folder, the digest of
+  `ghcr.io/majikmate/devcontainer-core:1`, and the newest versions of the tools
+  of the layers `go`, `node`, `deno` and `prettier`. They are stored in the
+  image label `devcon.inputs`.
+- **Nightly check at 01:17 UTC**, two hours after devcontainer-core (23:17 UTC).
+  A new core image or a new tool version leads to a new release. The same
+  happens when the newest image is older than 7 days (Debian updates).
+- **Pull requests** build and test both architectures and publish nothing.
+- **Version step:** patch; minor when Go 1.x changes or the major version of
+  Node.js or Deno changes.
 
-1. The content of the `.devcontainer` folder.
-2. The digest of the base image `buildpack-deps:trixie-curl`.
-3. The digest of every feature. Features are pinned by major version, so a new
-   minor or patch version of a feature changes this digest.
-4. The newest versions of the tools, read by
-   [`.github/tool-versions.sh`](.github/tool-versions.sh) from the same sources
-   that the installers use: Go (Go git tags), Node.js LTS (Node.js release
-   index), Deno LTS (`dl.deno.land`), pnpm, nvm, golangci-lint, Prettier and the
-   Tailwind CSS plugin.
+**Schedule of all images** (UTC). Each level runs two hours after the level it
+builds on, so a change reaches all images within one night:
 
-The inputs are stored in the image label `io.github.majikmate.devcontainer.inputs`.
+| Image                                                                                                   | Builds on | Nightly check |
+| ------------------------------------------------------------------------------------------------------- | --------- | ------------- |
+| [devcontainer-core](https://github.com/majikmate/devcontainer-core)                                     | Debian    | 23:17         |
+| devcontainer-base (this repository)                                                                     | core      | 01:17         |
+| [devcontainer-classroom-exam-ts](https://github.com/majikmate/devcontainer-classroom-exam-ts)           | core      | 01:27         |
+| [devcontainer-dev](https://github.com/majikmate/devcontainer-dev)                                       | base      | 03:37         |
+| [devcontainer-classroom-web](https://github.com/majikmate/devcontainer-classroom-web)                   | base      | 03:47         |
+| [devcontainer-classroom-web-advanced](https://github.com/majikmate/devcontainer-classroom-web-advanced) | base      | 03:57         |
 
-**When a new version is released**
+### Manual check and chain build
 
-| Event                       | Result                                                                                                                                                                        |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Pull request                | Build and test both architectures. Nothing is published.                                                                                                                      |
-| Push to `main`              | Release if an input changed.                                                                                                                                                  |
-| Nightly check (01:17 UTC)   | Release if an input changed, or if the newest image is older than 7 days (operating system updates).                                                                          |
-| Manual run ("Run workflow") | The same as the nightly check. Options `force` (release even without changes) and `bump`. The images that extend this base first update it (see [Chain build](#chain-build)). |
-| Tag `vX.Y.Z` pushed         | Release exactly this version.                                                                                                                                                 |
+Open **Actions → Release → Run workflow**. With the option `upstream` (on by
+default), the run first starts the Release workflow of devcontainer-core and
+waits for it. Core releases a new version only if its own inputs changed. Then
+this image runs its check; a new core image is a changed input.
 
-**Version numbers**: automatic releases increase the patch number. The minor
-number increases when the major version of Go (1.x), Node.js or Deno changes.
-The major version is set in `release.yml` (`major-version`); increase it
-together with a breaking change.
-
-**Every release**
-
-- is built without build cache, so it contains the newest tools and packages;
-- is tested inside the built container (versions, Debian release, Prettier with
-  Tailwind CSS sorting, Deno);
-- gets the tags `X.Y.Z`, `X.Y`, `X` and `latest`, and a GitHub release whose
-  notes list the reason, the installed versions and all inputs.
-
-**Schedule of all images** (UTC). The images that extend this base run their
-check two hours after the base image. They find the new base image digest and
-release themselves in the same night. The two hours cover the build time and a
-late start of a scheduled run, which GitHub delays when it is busy.
-
-| Image                                                                                                   | Nightly check |
-| ------------------------------------------------------------------------------------------------------- | ------------- |
-| devcontainer-base (this repository)                                                                     | 01:17         |
-| [devcontainer-classroom-exam-ts](https://github.com/majikmate/devcontainer-classroom-exam-ts)           | 01:27         |
-| [devcontainer-dev](https://github.com/majikmate/devcontainer-dev)                                       | 03:37         |
-| [devcontainer-classroom-web](https://github.com/majikmate/devcontainer-classroom-web)                   | 03:47         |
-| [devcontainer-classroom-web-advanced](https://github.com/majikmate/devcontainer-classroom-web-advanced) | 03:57         |
-
-A new tool or feature version therefore reaches all images within one night.
-
-### Manual check
-
-To check for new versions at once, open **Actions → Release → Run workflow**
-and keep the default options. The run releases a new version only if an input
-changed. Set `force` to release a new version without a change, and `bump` to
-select the version step.
-
-### Chain build
-
-To get a new image of devcontainer-classroom-web, devcontainer-classroom-web-advanced
-or devcontainer-dev at once, start only the Release workflow of that image. With
-the option `upstream` (on by default), the run works in this order:
-
-1. It starts the Release workflow of devcontainer-base and waits until it ends.
-   This run does the normal check: it releases a new base image only if one of
-   the base inputs changed (for example a new Go, Node.js or Deno version).
-2. It checks its own inputs. A new base image is a changed input.
-3. It builds, tests and releases a new version if an input changed.
-
-If the base run fails, the run stops and builds nothing. Switch `upstream` off
-to check only the image itself. Options `force` and `bump` apply only to the
-image itself, never to devcontainer-base.
-
-A manual run of devcontainer-base releases only the base image. The images that
-extend it follow in the next night, or at once with a manual run of their own.
-
-**Setup (once).** Starting a workflow in another repository needs a token that
-the built-in `GITHUB_TOKEN` cannot give. A GitHub App of the organization
-provides it:
-
-1. In the organization settings, open **Developer settings → GitHub Apps → New
-   GitHub App**. Enter a name (for example `majikmate-devcontainer`) and a
-   homepage URL. Turn off **Webhook**.
-2. Under **Repository permissions**, set **Actions** to **Read and write**.
-   Leave all other permissions at **No access**. Select **Only on this
-   account** and create the app.
-3. Note the **Client ID** of the app. Under **Private keys**, generate a private
-   key. The browser downloads a `.pem` file.
-4. Open **Install App**, install the app on the organization and select the
-   repository `devcontainer-base`.
-5. In the organization settings, open **Secrets and variables → Actions** and
-   add two organization secrets. Give the repositories
-   `devcontainer-classroom-web`, `devcontainer-classroom-web-advanced` and
-   `devcontainer-dev` access to both:
-   - `DEVCONTAINER_APP_CLIENT_ID`: the Client ID
-   - `DEVCONTAINER_APP_PRIVATE_KEY`: the full content of the `.pem` file
-
-Each run creates a new token that is valid for at most one hour and is revoked
-when the job ends. The token has only the permission **Actions** in
-`devcontainer-base`: it can start, read and cancel workflow runs there, but it
-cannot change code, releases or packages. Without the secrets, a run with
-`upstream` fails with a message that names them. The nightly checks do not need
-the app.
-
-> GitHub turns off scheduled workflows in public repositories after 60 days
-> without activity. The nightly run re-enables its own workflow to prevent this.
-> If it is turned off anyway, enable it again under **Actions → Release**.
+The images that build on this base do the same: a manual run of
+devcontainer-classroom-web starts this base, and this base starts core. Every
+image in the chain runs its complete automatic check. `force` and `bump` apply
+only to the image that you started. The chain build uses the GitHub App
+`majikmate-devcontainer`; see
+[Schedule and chain build](https://github.com/majikmate/devcontainer-core#schedule-and-chain-build).
 
 ## Extending the base
 
-```jsonc
-{
-  "name": "My Project",
-  "image": "ghcr.io/majikmate/devcontainer-base:2",
-  "features": {
-    // Add additional features here
-  },
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        // Add project-specific extensions
-        // Use "-publisher.extension" to remove an extension of the base
-      ],
-      "settings": {
-        // Override or add settings
-      },
-    },
-  },
-}
+A new image builds on this base in its own `.devcontainer/Dockerfile` and adds
+layers:
+
+```dockerfile
+FROM ghcr.io/majikmate/devcontainer-base:2
+
+# github-cli: GitHub CLI
+ARG GITHUB_CLI_VERSION
+RUN devcon install github-cli
 ```
 
-The VS Code settings and extensions of the base are stored in the image and
-apply to every image that extends it.
+Its `.devcontainer/devcontainer.json` holds only its own VS Code settings; use
+`"-publisher.extension"` to remove an extension of the base. See
+[Writing an image](https://github.com/majikmate/devcontainer-core#writing-an-image).
 
 ## Development
 
 ```bash
-# Build and start the container locally
-devcontainer build --workspace-folder .
-devcontainer up --workspace-folder .
-
-# Check the newest tool versions
-.github/tool-versions.sh
+# Build the image locally and run the layer tests
+docker buildx build --load -t devcontainer-base:dev .devcontainer
+docker run --rm --user dev --entrypoint devcon devcontainer-base:dev test
 ```
 
 Change the image through a pull request: the pull request build tests both
@@ -254,8 +175,8 @@ architectures. After the merge, the image is released automatically.
 
 ## Related repositories
 
-- [devcontainer-features](https://github.com/majikmate/devcontainer-features):
-  the majikmate features used by this image
+- [devcontainer-core](https://github.com/majikmate/devcontainer-core): the core
+  image, the layer tool `devcon` and the shared release workflow
 - [devcontainer-classroom-web](https://github.com/majikmate/devcontainer-classroom-web):
   classroom image for web development
 - [devcontainer-classroom-web-advanced](https://github.com/majikmate/devcontainer-classroom-web-advanced):
@@ -263,7 +184,9 @@ architectures. After the merge, the image is released automatically.
 - [devcontainer-dev](https://github.com/majikmate/devcontainer-dev):
   development image
 - [devcontainer-classroom-exam-ts](https://github.com/majikmate/devcontainer-classroom-exam-ts):
-  standalone exam image for TypeScript/Deno (uses the shared release workflow)
+  standalone exam image for TypeScript/Deno
+
+The concept of this structure: [docs/concept-docker-only.md](docs/concept-docker-only.md).
 
 ## License
 

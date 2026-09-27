@@ -1,9 +1,22 @@
 # Concept: images without Dev Container features
 
-Status: **concept, not implemented**. This document describes a planned
-restructuring of all majikmate Dev Container images. It records the decisions
-that are made, the points that are still open, and the planned work. Nothing in
-this document is active yet.
+Status: **implemented** in
+[devcontainer-core](https://github.com/majikmate/devcontainer-core). This
+document is the record of the decisions. The current documentation is the
+[README of devcontainer-core](https://github.com/majikmate/devcontainer-core#readme)
+and its [layer list](https://github.com/majikmate/devcontainer-core/blob/main/docs/layers.md).
+
+Differences between this concept and the implementation:
+
+| Topic                       | Concept                                                                         | Implementation                                                                                                                                                                          |
+| --------------------------- | ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Layer code                  | Bash scripts `install.sh` and `test.sh` per layer                               | One Go program `devcon` (static, `CGO_ENABLED=0`); each layer is one Go file. No Bash or Python scripts.                                                                                 |
+| Dockerfile line of a layer  | `RUN $LAYERS/<layer>/install.sh`                                                | `RUN devcon install <layer>`                                                                                                                                                            |
+| VS Code settings of a layer | In the `devcontainer.json` of each image                                        | Each layer declares its own settings (for example `capAdd` and `init` of the layer `go`); the release tool writes them into the label. `devcontainer.json` keeps the image's own settings. |
+| Release tooling             | Shared workflow with shell steps, `tool-versions.sh`, `skopeo`                  | Shared workflow in devcontainer-core with the Go program `devcon-release`; own registry client. Only GitHub and Docker actions.                                                         |
+| pnpm                        | Installed by the layer `node`                                                   | Not installed. The layer `node` installs nvm, Node.js LTS and npm.                                                                                                                      |
+| Chain build                 | From an image to its base image                                                  | Recursive: classroom-web starts base, base starts core.                                                                                                                                 |
+| SSH keys                    | Keys of the owner's GitHub account (`GITHUB_USER`)                              | As planned, plus the git setting `github.user` for the Dev Containers extension and `docker run -e GITHUB_USER=…` for local Docker and VMs.                                           |
 
 ## 1. Goal
 

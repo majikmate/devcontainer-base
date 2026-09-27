@@ -1,50 +1,36 @@
-# Debian 13 "trixie" with curl, wget, ca-certificates, gnupg and other basics
-FROM buildpack-deps:trixie-curl
+# devcontainer-base: core + Go, Node.js, Deno and Prettier.
+#
+# The layer tool devcon of devcontainer-core installs every layer; one RUN line
+# per layer. The release workflow passes the newest tool versions as build
+# arguments; without them, each layer installs the newest version.
+# Layers and their arguments: https://github.com/majikmate/devcontainer-core/blob/main/docs/layers.md
+FROM ghcr.io/majikmate/devcontainer-core:1
 
-# --- Accept build-time values (set by the release workflow) ---
-ARG OCI_IMAGE_TITLE="DevContainer Base Environment"
-ARG OCI_IMAGE_DESCRIPTION="Base Dev Container based on Debian 13 (trixie) with Go, Node.js LTS, Deno LTS, Prettier and common development tools"
-ARG OCI_IMAGE_VERSION="dev"
-ARG OCI_IMAGE_REVISION="unknown"
-ARG OCI_IMAGE_REF_NAME="main"
-ARG OCI_IMAGE_SOURCE="https://github.com/majikmate/devcontainer-base"
-ARG OCI_IMAGE_URL="https://github.com/majikmate/devcontainer-base"
-ARG OCI_IMAGE_DOCUMENTATION="https://github.com/majikmate/devcontainer-base#readme"
-ARG OCI_IMAGE_CREATED=""
-ARG OCI_IMAGE_AUTHORS="majikmate"
-ARG OCI_IMAGE_VENDOR="majikmate"
-ARG OCI_IMAGE_LICENSES="MIT"
-# Inputs of this image (base image, features, tool versions, configuration) and
-# their fingerprint. The release workflow compares them to decide if a rebuild is needed.
-ARG DEVCONTAINER_INPUTS=""
-ARG DEVCONTAINER_FINGERPRINT=""
+# go: Go, gopls, dlv, staticcheck, govulncheck, golangci-lint
+ENV GOROOT=/usr/local/go \
+    GOPATH=/go \
+    PATH=/go/bin:/usr/local/go/bin:$PATH
+ARG GO_VERSION
+ARG GOPLS_VERSION
+ARG DLV_VERSION
+ARG STATICCHECK_VERSION
+ARG GOVULNCHECK_VERSION
+ARG GOLANGCI_LINT_VERSION
+RUN devcon install go
 
-# --- Bake them as runtime env (persist in image) ---
-ENV OCI_IMAGE_TITLE="$OCI_IMAGE_TITLE" \
-    OCI_IMAGE_DESCRIPTION="$OCI_IMAGE_DESCRIPTION" \
-    OCI_IMAGE_VERSION="$OCI_IMAGE_VERSION" \
-    OCI_IMAGE_REVISION="$OCI_IMAGE_REVISION" \
-    OCI_IMAGE_REF_NAME="$OCI_IMAGE_REF_NAME" \
-    OCI_IMAGE_SOURCE="$OCI_IMAGE_SOURCE" \
-    OCI_IMAGE_URL="$OCI_IMAGE_URL" \
-    OCI_IMAGE_DOCUMENTATION="$OCI_IMAGE_DOCUMENTATION" \
-    OCI_IMAGE_CREATED="$OCI_IMAGE_CREATED" \
-    OCI_IMAGE_AUTHORS="$OCI_IMAGE_AUTHORS" \
-    OCI_IMAGE_VENDOR="$OCI_IMAGE_VENDOR" \
-    OCI_IMAGE_LICENSES="$OCI_IMAGE_LICENSES"
+# node: nvm, Node.js LTS, npm
+ENV NVM_DIR=/usr/local/share/nvm \
+    NVM_SYMLINK_CURRENT=true \
+    PATH=/usr/local/share/nvm/current/bin:$PATH
+ARG NVM_VERSION
+ARG NODE_VERSION
+RUN devcon install node
 
-# --- Also apply standard OCI labels (good practice) ---
-LABEL org.opencontainers.image.title="$OCI_IMAGE_TITLE" \
-      org.opencontainers.image.description="$OCI_IMAGE_DESCRIPTION" \
-      org.opencontainers.image.version="$OCI_IMAGE_VERSION" \
-      org.opencontainers.image.revision="$OCI_IMAGE_REVISION" \
-      org.opencontainers.image.ref.name="$OCI_IMAGE_REF_NAME" \
-      org.opencontainers.image.source="$OCI_IMAGE_SOURCE" \
-      org.opencontainers.image.url="$OCI_IMAGE_URL" \
-      org.opencontainers.image.documentation="$OCI_IMAGE_DOCUMENTATION" \
-      org.opencontainers.image.created="$OCI_IMAGE_CREATED" \
-      org.opencontainers.image.authors="$OCI_IMAGE_AUTHORS" \
-      org.opencontainers.image.vendor="$OCI_IMAGE_VENDOR" \
-      org.opencontainers.image.licenses="$OCI_IMAGE_LICENSES" \
-      io.github.majikmate.devcontainer.inputs="$DEVCONTAINER_INPUTS" \
-      io.github.majikmate.devcontainer.fingerprint="$DEVCONTAINER_FINGERPRINT"
+# deno: Deno LTS
+ARG DENO_VERSION
+RUN devcon install deno
+
+# prettier: Prettier with the Tailwind CSS plugin (global configuration /.prettierrc.json)
+ARG PRETTIER_VERSION
+ARG PRETTIER_PLUGIN_TAILWINDCSS_VERSION
+RUN devcon install prettier
