@@ -1,0 +1,24 @@
+# Manual run: lists (report) or deletes (apply) the outdated versions of the
+# image package of this repository. The logic is in the shared workflow of
+# devcontainer-core:
+# https://github.com/majikmate/devcontainer-core/blob/main/.github/workflows/devcontainer-prune.yml
+name: Prune
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: report (list only) or apply (delete; this cannot be undone)
+        type: choice
+        options: [report, apply]
+        default: report
+
+jobs:
+  prune:
+    uses: majikmate/devcontainer-core/.github/workflows/devcontainer-prune.yml@main
+    permissions:
+      packages: write
+    with:
+      mode: ${{ inputs.mode }}
+      # the same major version as in release.yml
+      major-version: 2
