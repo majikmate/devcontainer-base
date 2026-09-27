@@ -118,13 +118,13 @@ The inputs are stored in the image label `io.github.majikmate.devcontainer.input
 
 **When a new version is released**
 
-| Event                       | Result                                                                                               |
-| --------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Pull request                | Build and test both architectures. Nothing is published.                                             |
-| Push to `main`              | Release if an input changed.                                                                         |
-| Nightly check (01:17 UTC)   | Release if an input changed, or if the newest image is older than 7 days (operating system updates). |
-| Manual run ("Run workflow") | The same as the nightly check. Options `force` (release even without changes) and `bump`.            |
-| Tag `vX.Y.Z` pushed         | Release exactly this version.                                                                        |
+| Event                       | Result                                                                                                                                                                        |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Pull request                | Build and test both architectures. Nothing is published.                                                                                                                      |
+| Push to `main`              | Release if an input changed.                                                                                                                                                  |
+| Nightly check (01:17 UTC)   | Release if an input changed, or if the newest image is older than 7 days (operating system updates).                                                                          |
+| Manual run ("Run workflow") | The same as the nightly check. Options `force` (release even without changes) and `bump`. The images that extend this base first update it (see [Chain build](#chain-build)). |
+| Tag `vX.Y.Z` pushed         | Release exactly this version.                                                                                                                                                 |
 
 **Version numbers**: automatic releases increase the patch number. The minor
 number increases when the major version of Go (1.x), Node.js or Deno changes.
@@ -161,9 +161,52 @@ and keep the default options. The run releases a new version only if an input
 changed. Set `force` to release a new version without a change, and `bump` to
 select the version step.
 
-A manual run releases only the image of its own repository. To bring a new base
-image into the images that extend it at once, run their Release workflow
-after the base release has finished. Otherwise they follow in the next night.
+### Chain build
+
+To get a new image of devcontainer-classroom-web, devcontainer-classroom-web-advanced
+or devcontainer-dev at once, start only the Release workflow of that image. With
+the option `upstream` (on by default), the run works in this order:
+
+1. It starts the Release workflow of devcontainer-base and waits until it ends.
+   This run does the normal check: it releases a new base image only if one of
+   the base inputs changed (for example a new Go, Node.js or Deno version).
+2. It checks its own inputs. A new base image is a changed input.
+3. It builds, tests and releases a new version if an input changed.
+
+If the base run fails, the run stops and builds nothing. Switch `upstream` off
+to check only the image itself. Options `force` and `bump` apply only to the
+image itself, never to devcontainer-base.
+
+A manual run of devcontainer-base releases only the base image. The images that
+extend it follow in the next night, or at once with a manual run of their own.
+
+**Setup (once).** Starting a workflow in another repository needs a token that
+the built-in `GITHUB_TOKEN` cannot give. A GitHub App of the organization
+provides it:
+
+1. In the organization settings, open **Developer settings → GitHub Apps → New
+   GitHub App**. Enter a name (for example `majikmate-devcontainer`) and a
+   homepage URL. Turn off **Webhook**.
+2. Under **Repository permissions**, set **Actions** to **Read and write**.
+   Leave all other permissions at **No access**. Select **Only on this
+   account** and create the app.
+3. Note the **Client ID** of the app. Under **Private keys**, generate a private
+   key. The browser downloads a `.pem` file.
+4. Open **Install App**, install the app on the organization and select the
+   repository `devcontainer-base`.
+5. In the organization settings, open **Secrets and variables → Actions** and
+   add two organization secrets. Give the repositories
+   `devcontainer-classroom-web`, `devcontainer-classroom-web-advanced` and
+   `devcontainer-dev` access to both:
+   - `DEVCONTAINER_APP_CLIENT_ID`: the Client ID
+   - `DEVCONTAINER_APP_PRIVATE_KEY`: the full content of the `.pem` file
+
+Each run creates a new token that is valid for at most one hour and is revoked
+when the job ends. The token has only the permission **Actions** in
+`devcontainer-base`: it can start, read and cancel workflow runs there, but it
+cannot change code, releases or packages. Without the secrets, a run with
+`upstream` fails with a message that names them. The nightly checks do not need
+the app.
 
 > GitHub turns off scheduled workflows in public repositories after 60 days
 > without activity. The nightly run re-enables its own workflow to prevent this.
