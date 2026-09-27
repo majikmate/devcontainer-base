@@ -31,11 +31,18 @@ The image is the core image plus five layers. Each layer is one line in
 | Layer      | Content                                                         | Version                     |
 | ---------- | --------------------------------------------------------------- | --------------------------- |
 | (core)     | Debian 13, user `dev` with zsh and sudo, locales, git settings, aliases, Pure prompt, SSH server on port 2222 | see devcontainer-core |
-| `go`       | Go, gopls, dlv, staticcheck, govulncheck, golangci-lint         | newest release (no beta/rc) |
+| `go`       | Go, gopls, dlv, staticcheck, govulncheck, golangci-lint         | Go: newest **1.27.x** (`GO_PIN=1.27`); gopls, dlv, staticcheck, govulncheck: newest release that works with this Go; golangci-lint: newest release |
 | `build-tools` | make, gcc, g++, python3 for native npm modules (needed by `node`) | Debian packages          |
-| `node`     | nvm, Node.js, npm (no pnpm, no yarn)                             | newest **LTS** release of Node.js |
-| `deno`     | Deno                                                             | newest **LTS** release      |
+| `node`     | nvm, Node.js, npm (no pnpm, no yarn)                             | Node.js: newest **24.x** (`NODE_PIN=24`) |
+| `deno`     | Deno                                                             | newest **2.x** (`DENO_PIN=2`) |
 | `prettier` | Prettier with `prettier-plugin-tailwindcss`, global configuration `/.prettierrc.json` | newest release |
+
+**Pinned release lines.** Go, Node.js and Deno are pinned with `ARG <TOOL>_PIN`
+in the Dockerfile. The image gets every new release inside the pinned line.
+When a pinned line reaches its end of life, the nightly check and the build
+fail with a message that names the supported lines; then change the pin in the
+Dockerfile. The rules are in
+[Pinned release lines](https://github.com/majikmate/devcontainer-features#pinned-release-lines).
 
 The details of every layer (build arguments, VS Code settings, tests) are in the
 [layer list](https://github.com/majikmate/devcontainer-core/blob/main/docs/layers.md).
@@ -111,7 +118,7 @@ tags, release notes) are described in
 
 - **Inputs:** the `.devcontainer` folder, the digest of
   `ghcr.io/majikmate/devcontainer-core:1`, and the newest versions of the tools
-  of the layers `go`, `node`, `deno` and `prettier`. They are stored in the
+  of the layers `go`, `node`, `deno` and `prettier` (inside the pinned lines). They are stored in the
   image label `devcon.inputs`.
 - **Nightly check at 01:17 UTC**, two hours after devcontainer-core (23:17 UTC).
   A new core image or a new tool version leads to a new release. The same
