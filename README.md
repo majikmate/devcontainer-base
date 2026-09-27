@@ -95,7 +95,9 @@ receive all compatible updates automatically, but no breaking changes.
 Tools that are installed as "latest" or "lts" are fixed when an image is built.
 To keep the image current, the workflow
 [`.github/workflows/release.yml`](.github/workflows/release.yml) runs every
-hour and builds a new image when one of its inputs changed. The logic is in the
+night at 01:17 UTC and builds a new image when one of its inputs changed. You
+can also start the same check at any time (see
+[Manual check](#manual-check)). The logic is in the
 shared workflow
 [`.github/workflows/devcontainer-image.yml`](.github/workflows/devcontainer-image.yml),
 which the other image repositories use as well.
@@ -116,13 +118,13 @@ The inputs are stored in the image label `io.github.majikmate.devcontainer.input
 
 **When a new version is released**
 
-| Event                       | Result                                                                                               |
-| --------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Pull request                | Build and test both architectures. Nothing is published.                                             |
-| Push to `main`              | Release if an input changed.                                                                         |
-| Hourly check                | Release if an input changed, or if the newest image is older than 7 days (operating system updates). |
-| Tag `vX.Y.Z` pushed         | Release exactly this version.                                                                        |
-| Manual run ("Run workflow") | Options `force` (release even without changes) and `bump`.                                           |
+| Event                       | Result                                                                                                                                                                        |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Pull request                | Build and test both architectures. Nothing is published.                                                                                                                      |
+| Push to `main`              | Release if an input changed.                                                                                                                                                  |
+| Nightly check (01:17 UTC)   | Release if an input changed, or if the newest image is older than 7 days (operating system updates).                                                                          |
+| Manual run ("Run workflow") | The same as the nightly check. Options `force` (release even without changes) and `bump`. The images that extend this base first update it (see [Chain build](#chain-build)). |
+| Tag `vX.Y.Z` pushed         | Release exactly this version.                                                                                                                                                 |
 
 **Version numbers**: automatic releases increase the patch number. The minor
 number increases when the major version of Go (1.x), Node.js or Deno changes.
@@ -137,11 +139,77 @@ together with a breaking change.
 - gets the tags `X.Y.Z`, `X.Y`, `X` and `latest`, and a GitHub release whose
   notes list the reason, the installed versions and all inputs.
 
-The images that extend this base run the same hourly check. They find the new
-base image digest and release themselves.
+**Schedule of all images** (UTC). The images that extend this base run their
+check two hours after the base image. They find the new base image digest and
+release themselves in the same night. The two hours cover the build time and a
+late start of a scheduled run, which GitHub delays when it is busy.
+
+| Image                                                                                                   | Nightly check |
+| ------------------------------------------------------------------------------------------------------- | ------------- |
+| devcontainer-base (this repository)                                                                     | 01:17         |
+| [devcontainer-classroom-exam-ts](https://github.com/majikmate/devcontainer-classroom-exam-ts)           | 01:27         |
+| [devcontainer-dev](https://github.com/majikmate/devcontainer-dev)                                       | 03:37         |
+| [devcontainer-classroom-web](https://github.com/majikmate/devcontainer-classroom-web)                   | 03:47         |
+| [devcontainer-classroom-web-advanced](https://github.com/majikmate/devcontainer-classroom-web-advanced) | 03:57         |
+
+A new tool or feature version therefore reaches all images within one night.
+
+### Manual check
+
+To check for new versions at once, open **Actions → Release → Run workflow**
+and keep the default options. The run releases a new version only if an input
+changed. Set `force` to release a new version without a change, and `bump` to
+select the version step.
+
+### Chain build
+
+To get a new image of devcontainer-classroom-web, devcontainer-classroom-web-advanced
+or devcontainer-dev at once, start only the Release workflow of that image. With
+the option `upstream` (on by default), the run works in this order:
+
+1. It starts the Release workflow of devcontainer-base and waits until it ends.
+   This run does the normal check: it releases a new base image only if one of
+   the base inputs changed (for example a new Go, Node.js or Deno version).
+2. It checks its own inputs. A new base image is a changed input.
+3. It builds, tests and releases a new version if an input changed.
+
+If the base run fails, the run stops and builds nothing. Switch `upstream` off
+to check only the image itself. Options `force` and `bump` apply only to the
+image itself, never to devcontainer-base.
+
+A manual run of devcontainer-base releases only the base image. The images that
+extend it follow in the next night, or at once with a manual run of their own.
+
+**Setup (once).** Starting a workflow in another repository needs a token that
+the built-in `GITHUB_TOKEN` cannot give. A GitHub App of the organization
+provides it:
+
+1. In the organization settings, open **Developer settings → GitHub Apps → New
+   GitHub App**. Enter a name (for example `majikmate-devcontainer`) and a
+   homepage URL. Turn off **Webhook**.
+2. Under **Repository permissions**, set **Actions** to **Read and write**.
+   Leave all other permissions at **No access**. Select **Only on this
+   account** and create the app.
+3. Note the **Client ID** of the app. Under **Private keys**, generate a private
+   key. The browser downloads a `.pem` file.
+4. Open **Install App**, install the app on the organization and select the
+   repository `devcontainer-base`.
+5. In the organization settings, open **Secrets and variables → Actions** and
+   add two organization secrets. Give the repositories
+   `devcontainer-classroom-web`, `devcontainer-classroom-web-advanced` and
+   `devcontainer-dev` access to both:
+   - `DEVCONTAINER_APP_CLIENT_ID`: the Client ID
+   - `DEVCONTAINER_APP_PRIVATE_KEY`: the full content of the `.pem` file
+
+Each run creates a new token that is valid for at most one hour and is revoked
+when the job ends. The token has only the permission **Actions** in
+`devcontainer-base`: it can start, read and cancel workflow runs there, but it
+cannot change code, releases or packages. Without the secrets, a run with
+`upstream` fails with a message that names them. The nightly checks do not need
+the app.
 
 > GitHub turns off scheduled workflows in public repositories after 60 days
-> without activity. The hourly run re-enables its own workflow to prevent this.
+> without activity. The nightly run re-enables its own workflow to prevent this.
 > If it is turned off anyway, enable it again under **Actions → Release**.
 
 ## Extending the base

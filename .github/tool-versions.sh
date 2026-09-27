@@ -2,7 +2,7 @@
 # Prints the newest upstream version of every tool that the image installs with
 # "latest" or "lts", one line per tool: <name>=<version>
 #
-# The release workflow runs this script every hour. When a version differs from
+# The release workflow runs this script every night. When a version differs from
 # the version recorded in the current image, it rebuilds and releases the image.
 # Each probe reads the same source as the installer of the tool. A probe that
 # fails prints an empty value; the workflow then keeps the previous value.

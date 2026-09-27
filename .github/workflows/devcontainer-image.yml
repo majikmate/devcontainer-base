@@ -1,7 +1,9 @@
 # Shared workflow: build, test and release a Dev Container image.
 #
 # Used by the release.yml workflow of every image repository
-# (devcontainer-base, devcontainer-classroom-web, devcontainer-dev).
+# (devcontainer-base, devcontainer-classroom-web,
+# devcontainer-classroom-web-advanced, devcontainer-dev,
+# devcontainer-classroom-exam-ts).
 #
 # How it decides:
 #   1. It collects the "inputs" of the image: the .devcontainer folder, the digest
@@ -11,6 +13,13 @@
 #      ":latest" image. Only when something changed (or the image is older than
 #      max-age-days, or a release is forced) it builds and releases a new version.
 #   3. Pull requests are only built and tested; nothing is published.
+#
+# Chain: a manual run with update-upstream first starts the Release workflow of
+# every repository in upstream-repositories (the images that this image builds
+# on) and waits for it. The upstream run releases a new image only if one of
+# its own inputs changed. Then this image finds the new base image digest in
+# step 1. Starting a workflow in another repository needs the token of a GitHub
+# App (secrets app-client-id and app-private-key).
 #
 # Versions: v<major>.<minor>.<patch>. The major version comes from the input
 # major-version. The patch number increases with every automatic release; the
@@ -53,6 +62,21 @@ on:
         description: "Version step: auto, patch, minor or major"
         type: string
         default: auto
+      update-upstream:
+        description: Before the check, run the Release workflow of every upstream repository and wait for it
+        type: boolean
+        default: false
+      upstream-repositories:
+        description: Comma-separated names of the repositories in the same organization whose images this image builds on (for example devcontainer-base)
+        type: string
+        default: ""
+    secrets:
+      app-client-id:
+        description: Client ID of the GitHub App that starts the upstream workflows (needed only with update-upstream)
+        required: false
+      app-private-key:
+        description: Private key of that GitHub App (needed only with update-upstream)
+        required: false
 
 env:
   IMAGE_NAME: ghcr.io/${{ github.repository }}
@@ -60,8 +84,79 @@ env:
   LABEL_FINGERPRINT: io.github.majikmate.devcontainer.fingerprint
 
 jobs:
+  # Manual chain build: bring the images that this image builds on up to date first
+  upstream:
+    name: Update upstream images
+    if: inputs.update-upstream && inputs.upstream-repositories != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    permissions: {}
+    steps:
+      - name: Check the GitHub App secrets
+        env:
+          APP_CLIENT_ID: ${{ secrets.app-client-id }}
+          APP_PRIVATE_KEY: ${{ secrets.app-private-key }}
+        run: |
+          if [ -z "${APP_CLIENT_ID}" ] || [ -z "${APP_PRIVATE_KEY}" ]; then
+            echo "::error::The secrets DEVCONTAINER_APP_CLIENT_ID and DEVCONTAINER_APP_PRIVATE_KEY are missing. Set them up as described in the devcontainer-base README (section \"Chain build\"), or run the workflow again with the option \"upstream\" switched off."
+            exit 1
+          fi
+
+      - name: Create a token for the upstream repositories
+        id: token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ secrets.app-client-id }}
+          private-key: ${{ secrets.app-private-key }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ inputs.upstream-repositories }}
+          permission-actions: write
+
+      # Each upstream run does its normal check: it releases a new image only if
+      # one of its inputs changed. A failed upstream run stops this run, so that
+      # this image is never built on an outdated base image without notice.
+      - name: Run the Release workflow of each upstream repository
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          OWNER: ${{ github.repository_owner }}
+          REPOSITORIES: ${{ inputs.upstream-repositories }}
+          BOT: ${{ steps.token.outputs.app-slug }}[bot]
+        run: |
+          set -euo pipefail
+          for repo in ${REPOSITORIES//,/ }; do
+            # A margin of one minute covers a clock difference to GitHub
+            start="$(date -u -d '-60 seconds' +%Y-%m-%dT%H:%M:%SZ)"
+            echo "Starting the Release workflow of ${OWNER}/${repo}"
+            gh workflow run release.yml --repo "${OWNER}/${repo}" --ref main -f force=false -f bump=auto
+
+            # Find the run that the App started
+            run_id=""
+            for _ in $(seq 60); do
+              sleep 5
+              run_id="$(gh api -X GET "repos/${OWNER}/${repo}/actions/workflows/release.yml/runs" \
+                -f event=workflow_dispatch -f "created=>=${start}" \
+                --jq "[.workflow_runs[] | select(.triggering_actor.login == \"${BOT}\")] | sort_by(.created_at) | first | .id // empty")"
+              [ -z "${run_id}" ] || break
+            done
+            if [ -z "${run_id}" ]; then
+              echo "::error::The Release workflow of ${OWNER}/${repo} did not start within 5 minutes"
+              exit 1
+            fi
+
+            url="${GITHUB_SERVER_URL}/${OWNER}/${repo}/actions/runs/${run_id}"
+            echo "Waiting for ${url}"
+            if ! gh run watch "${run_id}" --repo "${OWNER}/${repo}" --interval 30 --exit-status > /dev/null; then
+              echo "::error::The Release workflow of ${OWNER}/${repo} failed: ${url}"
+              exit 1
+            fi
+            echo "- ${OWNER}/${repo}: [release run](${url}) finished" >> "$GITHUB_STEP_SUMMARY"
+          done
+
   prepare:
     name: Check inputs
+    needs: upstream
+    # Runs also when the upstream job is skipped (every run except a manual chain build)
+    if: ${{ !cancelled() && !failure() }}
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -82,7 +177,7 @@ jobs:
 
       # GitHub disables scheduled workflows in public repositories after 60 days
       # without repository activity. Re-enabling the workflow on every scheduled
-      # run keeps the hourly check active.
+      # run keeps the nightly check active.
       - name: Keep the scheduled check enabled
         if: github.event_name == 'schedule'
         env:
@@ -303,7 +398,7 @@ jobs:
   build:
     name: Build ${{ matrix.arch }}
     needs: prepare
-    if: needs.prepare.outputs.build == 'true'
+    if: ${{ !cancelled() && !failure() && needs.prepare.outputs.build == 'true' }}
     strategy:
       fail-fast: true
       matrix:
@@ -394,7 +489,7 @@ jobs:
   publish:
     name: Publish ${{ needs.prepare.outputs.version }}
     needs: [prepare, build]
-    if: needs.prepare.outputs.release == 'true'
+    if: ${{ !cancelled() && !failure() && needs.prepare.outputs.release == 'true' }}
     runs-on: ubuntu-24.04
     permissions:
       contents: write
