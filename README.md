@@ -50,8 +50,10 @@ style** (no style options).
   (`editor.defaultFormatter`), with format on save. Because of this, VS Code
   never uses the Deno formatter. If Prettier cannot format a file type, VS Code
   shows a short notice and does not format the file.
-- Exceptions with their own standard formatter: Go (`gofmt` through the Go
-  extension) and PlantUML.
+- Exception with its own standard formatter: Go (`gofmt` through the Go
+  extension).
+- PlantUML files are not formatted on save: the formatter of the PlantUML
+  extension is deprecated, and Prettier cannot format PlantUML.
 - The editor inserts 2 spaces per indentation level, the same as the standard
   Prettier output (Go uses tabs).
 - **Tailwind CSS classes are sorted** into the standard order (in `class`,
@@ -78,7 +80,7 @@ image label `devcontainer.metadata`:
 | -------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
 | devcontainer-core                            | user `dev`, terminal zsh, Markdown preview, theme "Dark (Visual Studio)", git (auto fetch, auto stash, rebase on sync, sync after commit), SSH start |
 | layers `go`, `deno`, `prettier`              | extensions Go, Deno, Prettier; Go formatting with `gofmt`; Deno tests with `--allow-all --check=all`; debugger options `capAdd: SYS_PTRACE` and `init: true` |
-| [`devcontainer.json`](.devcontainer/devcontainer.json) of this image | Prettier as default formatter, format on save, 2 spaces; PlantUML and PDF extensions, PlantUML server settings |
+| [`devcontainer.json`](.devcontainer/devcontainer.json) of this image | Prettier as default formatter, format on save, 2 spaces; PlantUML extension and server settings (no formatting of PlantUML files) |
 
 ## SSH access
 

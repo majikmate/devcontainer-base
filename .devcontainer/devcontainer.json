@@ -14,21 +14,25 @@
   },
   "customizations": {
     "vscode": {
-      "extensions": ["jebbs.plantuml", "tomoki1207.pdf"],
+      // No PDF viewer: tomoki1207.pdf has no update since 2023 and contains
+      // PDF.js 3.1.81, which has the security problem CVE-2024-4367
+      "extensions": ["jebbs.plantuml"],
       "settings": {
         // Formatting: Prettier is the only formatter, with the standard Prettier style.
         // Prettier is the default formatter for all languages, so VS Code never uses
         // the Deno formatter. Tailwind CSS classes are sorted by the plugin that is
         // loaded from the global configuration /.prettierrc.json (layer prettier).
-        // Go keeps gofmt (layer go), PlantUML its own formatter.
+        // Go keeps gofmt (layer go). PlantUML files are not formatted.
         "editor.defaultFormatter": "esbenp.prettier-vscode",
         "editor.formatOnSave": true,
         // Same indentation as the standard Prettier output
         "editor.insertSpaces": true,
         "editor.tabSize": 2,
         "editor.detectIndentation": false,
+        // The PlantUML extension marks its formatter as deprecated, and Prettier
+        // cannot format PlantUML: no formatting on save for these files
         "[plantuml]": {
-          "editor.defaultFormatter": "jebbs.plantuml"
+          "editor.formatOnSave": false
         },
         // PlantUML settings (rendering on the PlantUML server)
         "plantuml.server": "https://plantuml.htldornbirn.org/17159320-b82a-47cf-88c3-31945bc627fe/",
