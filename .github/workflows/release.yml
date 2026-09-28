@@ -12,11 +12,11 @@ on:
     branches: [main]
     tags: ["v*"]
   pull_request:
-  # Nightly check, two hours after devcontainer-core (23:17 UTC): a new core
-  # image leads to a new release. The images that build on this image run
-  # their check two hours later.
+  # Nightly check at 23:17 UTC (01:17 CEST), one hour after devcontainer-core
+  # (22:17 UTC): a new core image leads to a new release. The images that build
+  # on this image run their check 40 to 60 minutes later.
   schedule:
-    - cron: "17 1 * * *"
+    - cron: "17 23 * * *"
   # Manual check ("Run workflow"): first brings devcontainer-core up to date
   # (option upstream), then runs the same check as the nightly run
   workflow_dispatch:
