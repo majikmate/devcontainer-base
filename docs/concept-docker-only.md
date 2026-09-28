@@ -394,3 +394,7 @@ rarely change. The expected effort is a few hours per year.
 | A download format of a tool changes                                                  | the nightly build fails and publishes nothing; the previous image stays in use                      |
 | A wrong `devcontainer.metadata` label: students lose their VS Code settings          | the smoke test checks the label (valid JSON, expected extensions and settings)                      |
 | `GITHUB_USER` is not available for `postStartCommand`                                | checked before the implementation (section 8); otherwise the script runs from the shell start files |
+
+---
+
+© 2026 Hannes Stauss (scalarion@nimblescape.com) · [MIT License](../LICENSE).

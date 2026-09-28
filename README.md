@@ -101,6 +101,6 @@ Change `.devcontainer/` or `README.md` through a pull request. After the merge,
 the new image is released automatically (GitHub shows the README of the newest
 image on the package page).
 
-## License
+---
 
-MIT
+© 2026 Hannes Stauss (scalarion@nimblescape.com) · [MIT License](LICENSE).

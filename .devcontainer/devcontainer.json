@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: MIT
+// © 2026 Hannes Stauss (scalarion@nimblescape.com)
+// Licensed under the MIT License. See LICENSE in the repository root for details.
+
 // devcontainer-base: VS Code settings of this image.
 // The layers (go, node, deno, prettier) and devcontainer-core add their own
 // settings; this file adds the settings that belong to this image. The release
