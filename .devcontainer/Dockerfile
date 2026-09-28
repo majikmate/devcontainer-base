@@ -1,6 +1,6 @@
 # devcontainer-base: core + Go, Node.js, Deno and Prettier.
 #
-# The layer tool devenv of devcontainer-core installs every layer; one RUN line
+# The layer tool devcon of devcontainer-core installs every layer; one RUN line
 # per layer. This file never decides a version: the features do (pinned line
 # and channel), and the release workflow passes the chosen versions as build
 # arguments.
@@ -18,11 +18,11 @@ ARG DLV_VERSION
 ARG STATICCHECK_VERSION
 ARG GOVULNCHECK_VERSION
 ARG GOLANGCI_LINT_VERSION
-RUN devenv install go
+RUN devcon install go
 
 # build-tools: make, gcc, g++, python3 for native npm modules (node-gyp);
 # the layer node needs it
-RUN devenv install build-tools
+RUN devcon install build-tools
 
 # node: nvm, Node.js 24.x LTS, npm
 ENV NVM_DIR=/usr/local/share/nvm \
@@ -30,13 +30,13 @@ ENV NVM_DIR=/usr/local/share/nvm \
     PATH=/usr/local/share/nvm/current/bin:$PATH
 ARG NVM_VERSION
 ARG NODE_VERSION
-RUN devenv install node
+RUN devcon install node
 
 # deno: Deno 2.x LTS
 ARG DENO_VERSION
-RUN devenv install deno
+RUN devcon install deno
 
 # prettier: Prettier with the Tailwind CSS plugin (global configuration /.prettierrc.json)
 ARG PRETTIER_VERSION
 ARG PRETTIER_PLUGIN_TAILWINDCSS_VERSION
-RUN devenv install prettier
+RUN devcon install prettier
