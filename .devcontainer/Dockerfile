@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: MIT
+# © 2026 Hannes Stauss (scalarion@nimblescape.com)
+# Licensed under the MIT License. See LICENSE in the repository root for details.
+
 # devcontainer-base: core + Go, Node.js, Deno and Prettier.
 #
 # The layer tool devcon of devcontainer-core installs every layer; one RUN line
