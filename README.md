@@ -1,8 +1,7 @@
 # devcontainer-base
 
 The base image of the classroom and development images: devcontainer-core plus
-Go, Node.js, Deno, Prettier and the VS Code Server, with a shared VS Code
-configuration.
+Go, Node.js, Deno and Prettier, with a shared VS Code configuration.
 
 **Image:** `ghcr.io/majikmate/devcontainer-base:2` · linux/amd64, linux/arm64 ·
 [release notes](https://github.com/majikmate/devcontainer-base/releases)
@@ -14,7 +13,7 @@ configuration.
 devcontainer-features                                  Go library of layers, compiled into devcon
   ▼
 devcontainer-core:1                            22:17   Debian 13, devcon, user dev, zsh, SSH server
-├── devcontainer-base:2                        23:17   + go, build-tools, node, deno, prettier, vscode-server
+├── devcontainer-base:2                        23:17   + go, build-tools, node, deno, prettier
 │   ├── devcontainer-dev:2                     23:57   + github-cli
 │   ├── devcontainer-classroom-web:2           00:07   classroom settings, AI off
 │   └── devcontainer-classroom-web-advanced:2  00:17   + playwright-deps, AI on
@@ -57,7 +56,6 @@ Each layer is one line in [`.devcontainer/Dockerfile`](.devcontainer/Dockerfile)
 | `node` | nvm, Node.js, npm (no pnpm, no yarn) | Node.js 24.x LTS ([`nodePin`, `nodeChannel`](https://github.com/majikmate/devcontainer-features/blob/main/node/node.go#L39-L44)) |
 | `deno` | Deno | Deno 2.x LTS, the release of `deno upgrade lts` ([`denoPin`, `denoChannel`](https://github.com/majikmate/devcontainer-features/blob/main/deno/deno.go#L36-L39)) |
 | `prettier` | Prettier with `prettier-plugin-tailwindcss`, global configuration `/.prettierrc.json` | newest release ([`prettierPin`](https://github.com/majikmate/devcontainer-features/blob/main/prettier/prettier.go#L32-L37)) |
-| `vscode-server` | VS Code Server in `~/.vscode-server` of the user `dev`: the Dev Containers extension of the same VS Code release starts it without a download | newest VS Code release ([`vscodeServerPin`](https://github.com/majikmate/devcontainer-features/blob/main/vscodeserver/vscodeserver.go#L38-L41)) |
 
 **Versions:** the features decide the pinned lines and channels, not this
 Dockerfile ([rules](https://github.com/majikmate/devcontainer-features#versions)).

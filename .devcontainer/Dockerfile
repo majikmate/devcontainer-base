@@ -2,7 +2,7 @@
 # © 2026 Hannes Stauss (scalarion@nimblescape.com)
 # Licensed under the MIT License. See LICENSE in the repository root for details.
 
-# devcontainer-base: core + Go, Node.js, Deno, Prettier and the VS Code Server.
+# devcontainer-base: core + Go, Node.js, Deno and Prettier.
 #
 # The layer tool devcon of devcontainer-core installs every layer; one RUN line
 # per layer. This file never decides a version: the features do (pinned line
@@ -44,9 +44,3 @@ RUN devcon install deno
 ARG PRETTIER_VERSION
 ARG PRETTIER_PLUGIN_TAILWINDCSS_VERSION
 RUN devcon install prettier
-
-# vscode-server: VS Code Server of the newest VS Code release in ~/.vscode-server
-# of the user; the Dev Containers extension of that release starts it without
-# a download
-ARG VSCODE_SERVER_VERSION
-RUN devcon install vscode-server
