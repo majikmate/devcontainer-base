@@ -67,15 +67,22 @@ Details of all layers:
 ## VS Code
 
 - **Extensions:** Go, Deno, Prettier, Markdown preview (from the layers),
-  [nimblescape PlantUML](https://marketplace.visualstudio.com/items?itemName=nimblescape.nimblescape-plantuml)
-  and
+  [nimblescape PlantUML](https://marketplace.visualstudio.com/items?itemName=nimblescape.nimblescape-plantuml),
   [nimblescape Mindbug](https://marketplace.visualstudio.com/items?itemName=nimblescape.nimblescape-mindbug)
+  and
+  [nimblescape Comment Links](https://marketplace.visualstudio.com/items?itemName=nimblescape.nimblescape-commentlinks)
   (from [`devcontainer.json`](.devcontainer/devcontainer.json)).
 - **PlantUML:** the diagrams in PlantUML files and in the `plantuml` blocks of
   Markdown files render in the editor itself, without a PlantUML server, Java
   or Graphviz.
 - **Mindbug:** shows the stack and the heap of a TypeScript program as a
   diagram while it is debugged (command **Run with Mindbug**), with Deno.
+- **Comment Links:** a Markdown link in a code comment, for example
+  `// Assures: [A-UNIT-001](docs/unit.md#a-unit-001)`, shows only its label.
+  Ctrl+click (Cmd+click on macOS) on the label opens the target file at the
+  heading that the link names. The line of the cursor shows the whole link,
+  and the extension completes the paths and the headings while you write a
+  link.
 - **Formatting:** Prettier formats all languages except Go and PlantUML, with
   the standard Prettier style, format on save and 2 spaces. Tailwind CSS
   classes are sorted. A project with its own Prettier configuration uses that

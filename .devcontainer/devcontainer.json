@@ -27,7 +27,10 @@
         "nimblescape.nimblescape-plantuml",
         // Mindbug: shows the stack and the heap of a TypeScript program as a
         // diagram while it is debugged (with Deno or Node.js)
-        "nimblescape.nimblescape-mindbug"
+        "nimblescape.nimblescape-mindbug",
+        // Comment Links: Markdown links in code comments show only their label,
+        // and a click opens the target file at the heading that the link names
+        "nimblescape.nimblescape-commentlinks"
       ],
       "settings": {
         // Formatting: Prettier formats all languages except Go and PlantUML, with
