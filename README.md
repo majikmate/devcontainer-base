@@ -67,11 +67,20 @@ Details of all layers:
 ## VS Code
 
 - **Extensions:** Go, Deno, Prettier, Markdown preview (from the layers),
-  PlantUML (from [`devcontainer.json`](.devcontainer/devcontainer.json)).
-- **Formatting:** Prettier is the only formatter, with the standard Prettier
-  style, format on save and 2 spaces. Tailwind CSS classes are sorted. A
-  project with its own Prettier configuration uses that configuration. Go uses
-  `gofmt`; PlantUML files are not formatted.
+  [nimblescape PlantUML](https://marketplace.visualstudio.com/items?itemName=nimblescape.nimblescape-plantuml)
+  and
+  [nimblescape Mindbug](https://marketplace.visualstudio.com/items?itemName=nimblescape.nimblescape-mindbug)
+  (from [`devcontainer.json`](.devcontainer/devcontainer.json)).
+- **PlantUML:** the diagrams in PlantUML files and in the `plantuml` blocks of
+  Markdown files render in the editor itself, without a PlantUML server, Java
+  or Graphviz.
+- **Mindbug:** shows the stack and the heap of a TypeScript program as a
+  diagram while it is debugged (command **Run with Mindbug**), with Deno.
+- **Formatting:** Prettier formats all languages except Go and PlantUML, with
+  the standard Prettier style, format on save and 2 spaces. Tailwind CSS
+  classes are sorted. A project with its own Prettier configuration uses that
+  configuration. Go uses `gofmt`; the PlantUML extension formats PlantUML
+  files and the PlantUML blocks of Markdown files.
 - **Deno** is the JavaScript/TypeScript runtime and language server, not the
   formatter.
 - **SSH:** port 2222, keys of your GitHub account only
