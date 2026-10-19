@@ -18,8 +18,6 @@
   },
   "customizations": {
     "vscode": {
-      // No PDF viewer: tomoki1207.pdf has no update since 2023 and contains
-      // PDF.js 3.1.81, which has the security problem CVE-2024-4367
       "extensions": [
         // PlantUML diagrams in Markdown files and PlantUML files: the
         // extension renders them itself, without a PlantUML server, Java or
@@ -30,7 +28,11 @@
         "nimblescape.nimblescape-mindbug",
         // Comment Links: Markdown links in code comments show only their label,
         // and a click opens the target file at the heading that the link names
-        "nimblescape.nimblescape-commentlinks"
+        "nimblescape.nimblescape-commentlinks",
+        // PDF viewer: contains PDF.js 6 (tomoki1207.pdf is not used: it has no
+        // update since 2023 and contains PDF.js 3.1.81, which has the security
+        // problem CVE-2024-4367)
+        "mathematic.vscode-pdf"
       ],
       "settings": {
         // Formatting: Prettier formats all languages except Go and PlantUML, with
