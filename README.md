@@ -68,9 +68,10 @@ Details of all layers:
 
 - **Extensions:** Go, Deno, Prettier, Markdown preview (from the layers),
   [nimblescape PlantUML](https://marketplace.visualstudio.com/items?itemName=nimblescape.nimblescape-plantuml),
-  [nimblescape Mindbug](https://marketplace.visualstudio.com/items?itemName=nimblescape.nimblescape-mindbug)
-  and
+  [nimblescape Mindbug](https://marketplace.visualstudio.com/items?itemName=nimblescape.nimblescape-mindbug),
   [nimblescape Comment Links](https://marketplace.visualstudio.com/items?itemName=nimblescape.nimblescape-commentlinks)
+  and the
+  [PDF Viewer](https://marketplace.visualstudio.com/items?itemName=mathematic.vscode-pdf)
   (from [`devcontainer.json`](.devcontainer/devcontainer.json)).
 - **PlantUML:** the diagrams in PlantUML files and in the `plantuml` blocks of
   Markdown files render in the editor itself, without a PlantUML server, Java
