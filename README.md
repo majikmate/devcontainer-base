@@ -70,6 +70,7 @@ Details of all layers:
 - **Extensions:** Go, Deno, Prettier, Markdown preview (from the layers),
   [nimblescape PlantUML](https://marketplace.visualstudio.com/items?itemName=nimblescape.nimblescape-plantuml),
   [nimblescape Mindbug](https://marketplace.visualstudio.com/items?itemName=nimblescape.nimblescape-mindbug),
+  [nimblescape TypeScript](https://marketplace.visualstudio.com/items?itemName=nimblescape.nimblescape-typescript),
   [nimblescape Comment Links](https://marketplace.visualstudio.com/items?itemName=nimblescape.nimblescape-commentlinks)
   and the
   [PDF Viewer](https://marketplace.visualstudio.com/items?itemName=mathematic.vscode-pdf)
@@ -85,6 +86,11 @@ Details of all layers:
   heading that the link names. The line of the cursor shows the whole link,
   and the extension completes the paths and the headings while you write a
   link.
+- **TypeScript:** the completions of a TypeScript file offer no import of a
+  name that is global already, such as `log` from `node:console` or
+  `parseInt` from `es-toolkit/compat`. When the `package.json` of a project
+  lists `typescript` and its packages are not installed, a hint offers to run
+  `npm ci`, and then to reload the window.
 - **Formatting:** Prettier formats all languages except Go and PlantUML, with
   the standard Prettier style, format on save and 2 spaces. Tailwind CSS
   classes are sorted. A project with its own Prettier configuration uses that
