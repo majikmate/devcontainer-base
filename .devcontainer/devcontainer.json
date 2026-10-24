@@ -26,6 +26,11 @@
         // Mindbug: shows the stack and the heap of a TypeScript program as a
         // diagram while it is debugged (with Deno or Node.js)
         "nimblescape.nimblescape-mindbug",
+        // TypeScript: the completions offer no import of a name that is global
+        // already (such as log from node:console or parseInt from
+        // es-toolkit/compat), and a hint offers npm ci when the TypeScript of
+        // the project is not installed
+        "nimblescape.nimblescape-typescript",
         // Comment Links: Markdown links in code comments show only their label,
         // and a click opens the target file at the heading that the link names
         "nimblescape.nimblescape-commentlinks",
