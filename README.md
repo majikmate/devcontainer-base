@@ -41,7 +41,8 @@ RUN devcon install github-cli
 ```
 
 - `:2` receives all compatible updates (new tool versions, security updates).
-- A full version (for example `:2.0.8`) stays available for at least 90 days.
+- A full version (for example `:2.0.8`) stays available until five newer
+  releases exist; only the newest 5 releases are kept.
 - See [Writing an image](https://github.com/majikmate/devcontainer-core#writing-an-image).
 
 ## Content
@@ -105,10 +106,11 @@ Details of all layers:
 - **Manual:** **Actions → Release → Run workflow**. The option `upstream` (on
   by default) first updates core; `force` releases without a change.
 - **Pull requests** build and test both architectures and publish nothing.
-- **Kept versions:** the newest release and the tags `2`, `2.x` and `latest`.
-  Older releases and workflow runs are deleted after 90 days. **Actions →
-  Prune** lists or deletes them at once; the scope `all-but-newest` keeps
-  only the newest release and the newest run of each workflow.
+- **Kept versions:** the newest 5 releases and the tags `2`, `2.x` and
+  `latest`. Older releases are deleted after every release run, and workflow
+  runs after 30 days. **Actions → Prune** lists or deletes them at once; the
+  scope `all-but-newest` keeps only the newest release and the newest run of
+  each workflow.
 
 Rules: [Releases](https://github.com/majikmate/devcontainer-core#releases).
 
