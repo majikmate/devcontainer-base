@@ -79,7 +79,8 @@ Details of all layers:
   Markdown files render in the editor itself, without a PlantUML server, Java
   or Graphviz.
 - **Mindbug:** shows the stack and the heap of a TypeScript program as a
-  diagram while it is debugged (command **Run with Mindbug**), with Deno.
+  diagram while it is debugged (command **Run with Mindbug**), with Deno or
+  Node.js.
 - **Comment Links:** a Markdown link in a code comment, for example
   `// Assures: [A-UNIT-001](docs/unit.md#a-unit-001)`, shows only its label.
   Ctrl+click (Cmd+click on macOS) on the label opens the target file at the
@@ -96,8 +97,10 @@ Details of all layers:
   classes are sorted. A project with its own Prettier configuration uses that
   configuration. Go uses `gofmt`; the PlantUML extension formats PlantUML
   files and the PlantUML blocks of Markdown files.
-- **Deno** is the JavaScript/TypeScript runtime and language server, not the
-  formatter.
+- **Deno** is installed as a JavaScript/TypeScript runtime, not the formatter.
+  The Deno extension is off (`"deno.enable": false`, from the layer `deno`),
+  because the courses run on Node.js. A project that runs on Deno turns it on
+  in its own `devcontainer.json` (`"deno.enable": true`).
 - **SSH:** port 2222, keys of your GitHub account only
   ([SSH access](https://github.com/majikmate/devcontainer-core#ssh-access)).
 
