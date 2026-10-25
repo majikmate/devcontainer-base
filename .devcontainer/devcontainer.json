@@ -3,7 +3,7 @@
 // Licensed under the MIT License. See LICENSE in the repository root for details.
 
 // devcontainer-base: VS Code settings of this image.
-// The layers (go, node, deno, prettier) and devcontainer-core add their own
+// The layers (go, node, ts, deno, prettier) and devcontainer-core add their own
 // settings; this file adds the settings that belong to this image. The release
 // workflow writes all of them into the image label devcontainer.metadata.
 // Documentation: https://github.com/majikmate/devcontainer-base#readme
@@ -26,11 +26,6 @@
         // Mindbug: shows the stack and the heap of a TypeScript program as a
         // diagram while it is debugged (with Deno or Node.js)
         "nimblescape.nimblescape-mindbug",
-        // TypeScript: the completions offer no import of a name that is global
-        // already (such as log from node:console or parseInt from
-        // es-toolkit/compat), and a hint offers npm ci when the TypeScript of
-        // the project is not installed
-        "nimblescape.nimblescape-typescript",
         // Comment Links: Markdown links in code comments show only their label,
         // and a click opens the target file at the heading that the link names
         "nimblescape.nimblescape-commentlinks",
