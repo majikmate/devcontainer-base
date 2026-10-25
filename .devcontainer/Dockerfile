@@ -2,7 +2,7 @@
 # © 2026 Hannes Stauss (scalarion@nimblescape.com)
 # Licensed under the MIT License. See LICENSE in the repository root for details.
 
-# devcontainer-base: core + Go, Node.js, Deno and Prettier.
+# devcontainer-base: core + Go, Node.js, ts, Deno and Prettier.
 #
 # The layer tool devcon of devcontainer-core installs every layer; one RUN line
 # per layer. This file never decides a version: the features do (pinned line
@@ -35,6 +35,12 @@ ENV NVM_DIR=/usr/local/share/nvm \
 ARG NVM_VERSION
 ARG NODE_VERSION
 RUN devcon install node
+
+# ts: the command ts of nimblescape TypeScript (npm package
+# @nimblescape/typescript) with Tab completion, and the VS Code extension
+# nimblescape TypeScript
+ARG NIMBLESCAPE_TYPESCRIPT_VERSION
+RUN devcon install ts
 
 # deno: Deno 2.x LTS
 ARG DENO_VERSION

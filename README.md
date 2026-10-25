@@ -1,7 +1,8 @@
 # devcontainer-base
 
 The base image of the classroom and development images: devcontainer-core plus
-Go, Node.js, Deno and Prettier, with a shared VS Code configuration.
+Go, Node.js, the command `ts`, Deno and Prettier, with a shared VS Code
+configuration.
 
 **Image:** `ghcr.io/majikmate/devcontainer-base:2` · linux/amd64, linux/arm64 ·
 [release notes](https://github.com/majikmate/devcontainer-base/releases)
@@ -13,11 +14,11 @@ Go, Node.js, Deno and Prettier, with a shared VS Code configuration.
 devcontainer-features                                  Go library of layers, compiled into devcon
   ▼
 devcontainer-core:1                            22:17   Debian 13, devcon, user dev, zsh, SSH server
-├── devcontainer-base:2                        23:17   + go, build-tools, node, deno, prettier
+├── devcontainer-base:2                        23:17   + go, build-tools, node, ts, deno, prettier
 │   ├── devcontainer-dev:2                     23:57   + github-cli
 │   ├── devcontainer-classroom-web:2           00:07   + html-validate, classroom settings, AI off
 │   └── devcontainer-classroom-web-advanced:2  00:17   + playwright-deps, html-validate, AI on
-└── devcontainer-classroom-exam-ts:2           23:47   + deno, AI and coding assistance off
+└── devcontainer-classroom-exam-ts:2           23:47   + build-tools, node, ts, deno, AI and coding assistance off
 ```
 
 This repository: **devcontainer-base**. Nightly checks in UTC. Repositories:
@@ -55,6 +56,7 @@ Each layer is one line in [`.devcontainer/Dockerfile`](.devcontainer/Dockerfile)
 | `go` | Go, gopls, dlv, staticcheck, govulncheck, golangci-lint | Go 1.27.x; the Go tools in the newest version that works with this Go ([`goPin`](https://github.com/majikmate/devcontainer-features/blob/main/golang/golang.go#L49-L54)) |
 | `build-tools` | make, gcc, g++, python3 (for native npm modules) | Debian packages of the Debian release ([`debianPin`](https://github.com/majikmate/devcontainer-core/blob/main/pkg/layers/os.go#L31-L34)) |
 | `node` | nvm, Node.js, npm (no pnpm, no yarn) | Node.js 26.x, the newest release of the line (LTS from 2026-10-28) ([`nodePin`, `nodeChannel`](https://github.com/majikmate/devcontainer-features/blob/main/node/node.go#L41-L46)) |
+| `ts` | the command `ts` of [`@nimblescape/typescript`](https://www.npmjs.com/package/@nimblescape/typescript) (checks, compiles and runs TypeScript with tsc and Node.js), Tab completion in zsh and bash, VS Code extension nimblescape TypeScript | newest release ([`tsPin`](https://github.com/majikmate/devcontainer-features/blob/main/ts/ts.go#L35-L38)) |
 | `deno` | Deno | Deno 2.x LTS, the release of `deno upgrade lts` ([`denoPin`, `denoChannel`](https://github.com/majikmate/devcontainer-features/blob/main/deno/deno.go#L36-L39)) |
 | `prettier` | Prettier with `prettier-plugin-tailwindcss`, global configuration `/.prettierrc.json` | newest release ([`prettierPin`](https://github.com/majikmate/devcontainer-features/blob/main/prettier/prettier.go#L32-L37)) |
 
@@ -67,10 +69,11 @@ Details of all layers:
 
 ## VS Code
 
-- **Extensions:** Go, Deno, Prettier, Markdown preview (from the layers),
+- **Extensions:** Go, Deno, Prettier, Markdown preview,
+  [nimblescape TypeScript](https://marketplace.visualstudio.com/items?itemName=nimblescape.nimblescape-typescript)
+  (from the layers),
   [nimblescape PlantUML](https://marketplace.visualstudio.com/items?itemName=nimblescape.nimblescape-plantuml),
   [nimblescape Mindbug](https://marketplace.visualstudio.com/items?itemName=nimblescape.nimblescape-mindbug),
-  [nimblescape TypeScript](https://marketplace.visualstudio.com/items?itemName=nimblescape.nimblescape-typescript),
   [nimblescape Comment Links](https://marketplace.visualstudio.com/items?itemName=nimblescape.nimblescape-commentlinks)
   and the
   [PDF Viewer](https://marketplace.visualstudio.com/items?itemName=mathematic.vscode-pdf)
@@ -87,11 +90,15 @@ Details of all layers:
   heading that the link names. The line of the cursor shows the whole link,
   and the extension completes the paths and the headings while you write a
   link.
-- **TypeScript:** the completions of a TypeScript file offer no import of a
-  name that is global already, such as `log` from `node:console` or
-  `parseInt` from `es-toolkit/compat`. When the `package.json` of a project
-  lists `typescript` and its packages are not installed, a hint offers to run
-  `npm ci`, and then to reload the window.
+- **TypeScript:** `ts main.ts` checks `main.ts` with `tsc`, compiles it and
+  runs it with Node.js, with the global functions `prompt()`, `alert()` and
+  `confirm()`. In the terminals of VS Code, `ts` uses the TypeScript of VS
+  Code; the image installs no TypeScript of its own. Tab completes the options
+  of `ts` in zsh and bash. F5 runs a TypeScript file with the debug type `ts`,
+  and in a folder without `tsconfig.json` the editor shows the same errors as
+  `ts`. The completions of a TypeScript file offer no import of a name that is
+  global already, such as `log` from `node:console` or `parseInt` from
+  `es-toolkit/compat`.
 - **Formatting:** Prettier formats all languages except Go and PlantUML, with
   the standard Prettier style, format on save and 2 spaces. Tailwind CSS
   classes are sorted. A project with its own Prettier configuration uses that
