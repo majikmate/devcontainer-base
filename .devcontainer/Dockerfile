@@ -28,7 +28,7 @@ RUN devcon install go
 # the layer node needs it
 RUN devcon install build-tools
 
-# node: nvm, Node.js 24.x LTS, npm
+# node: nvm, Node.js 26.x, npm
 ENV NVM_DIR=/usr/local/share/nvm \
     NVM_SYMLINK_CURRENT=true \
     PATH=/usr/local/share/nvm/current/bin:$PATH

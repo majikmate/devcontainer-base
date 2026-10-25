@@ -54,7 +54,7 @@ Each layer is one line in [`.devcontainer/Dockerfile`](.devcontainer/Dockerfile)
 | (devcontainer-core) | Debian 13, user `dev`, zsh, locales, git settings, aliases, Pure prompt, SSH server on port 2222 | see [core](https://github.com/majikmate/devcontainer-core#content); Debian release: [`debianPin`](https://github.com/majikmate/devcontainer-core/blob/main/pkg/layers/os.go#L31-L34) |
 | `go` | Go, gopls, dlv, staticcheck, govulncheck, golangci-lint | Go 1.27.x; the Go tools in the newest version that works with this Go ([`goPin`](https://github.com/majikmate/devcontainer-features/blob/main/golang/golang.go#L49-L54)) |
 | `build-tools` | make, gcc, g++, python3 (for native npm modules) | Debian packages of the Debian release ([`debianPin`](https://github.com/majikmate/devcontainer-core/blob/main/pkg/layers/os.go#L31-L34)) |
-| `node` | nvm, Node.js, npm (no pnpm, no yarn) | Node.js 24.x LTS ([`nodePin`, `nodeChannel`](https://github.com/majikmate/devcontainer-features/blob/main/node/node.go#L39-L44)) |
+| `node` | nvm, Node.js, npm (no pnpm, no yarn) | Node.js 26.x, the newest release of the line (LTS from 2026-10-28) ([`nodePin`, `nodeChannel`](https://github.com/majikmate/devcontainer-features/blob/main/node/node.go#L41-L46)) |
 | `deno` | Deno | Deno 2.x LTS, the release of `deno upgrade lts` ([`denoPin`, `denoChannel`](https://github.com/majikmate/devcontainer-features/blob/main/deno/deno.go#L36-L39)) |
 | `prettier` | Prettier with `prettier-plugin-tailwindcss`, global configuration `/.prettierrc.json` | newest release ([`prettierPin`](https://github.com/majikmate/devcontainer-features/blob/main/prettier/prettier.go#L32-L37)) |
 
